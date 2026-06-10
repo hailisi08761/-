@@ -1,0 +1,6 @@
+{
+  "name": "TikTok Shop Multi-Site Fee Simulator",
+  "description": "A comprehensive cost simulator and cash flow analyzer for TikTok Shop sellers, providing side-by-side site cost comparisons, third-party payment optimization, payout alerts, and risk assessments.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
