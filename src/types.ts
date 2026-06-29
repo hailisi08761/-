@@ -26,6 +26,8 @@ export interface PayoutTool {
 
 export interface SimulationInput {
   // Product pricing metrics
+  productName?: string; // Product name for automated tax rates
+  businessMode?: 'virtual' | 'local' | 'overseas'; // 'virtual' | 'local' | 'overseas'
   cogs: number; // Product cost (RMB or USD) - we can let user toggle input currency (Default CNY/RMB)
   priceLocal: number; // Product retail price in target local currency
   category: string; // Product category (affects refund risk, return rate threshold)

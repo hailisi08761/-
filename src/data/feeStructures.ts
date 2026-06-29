@@ -279,18 +279,12 @@ export const SITE_FEE_CONFIGS: SiteFeeConfig[] = [
 ];
 
 export const SITES_BY_PLATFORM: Record<string, string[]> = {
-  tiktok: ['US', 'UK', 'MY', 'TH', 'PH', 'SG', 'VN'],
-  amazon: ['US', 'CA', 'MX', 'UK', 'DE', 'FR', 'IT', 'ES', 'JP'],
-  etsy: ['US', 'CA', 'UK', 'DE', 'FR', 'IT', 'ES', 'JP', 'AU'],
-  walmart: ['US', 'CA', 'MX', 'UK', 'DE', 'ES', 'AU'],
+  tiktok: ['US', 'UK', 'MX', 'MY', 'TH', 'PH', 'SG', 'VN'],
   shopify: ['US', 'CA', 'MX', 'UK', 'DE', 'FR', 'IT', 'ES', 'JP', 'MY', 'TH', 'PH', 'SG', 'VN', 'AU']
 };
 
 export const PLATFORMS = [
   { id: 'tiktok', name: 'TikTok Shop' },
-  { id: 'amazon', name: 'Amazon' },
-  { id: 'etsy', name: 'Etsy' },
-  { id: 'walmart', name: 'Walmart' },
   { id: 'shopify', name: '独立站 (Shopify/Woo)' }
 ];
 

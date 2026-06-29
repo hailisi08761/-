@@ -140,25 +140,36 @@ export default function PaymentOptimizer({
                 <div
                   key={tool.id}
                   onClick={() => onChangePayoutId(tool.id)}
-                  className={`relative p-4 rounded-xl border cursor-pointer transition-all ${
-                    isSelected
-                      ? 'border-indigo-600 bg-indigo-50/20 shadow-sm ring-1 ring-indigo-500'
-                      : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50/50'
+                  className={`relative p-5 rounded-2xl border cursor-pointer transition-all duration-300 ${
+                    tool.id === 'airwallex'
+                      ? isSelected
+                        ? 'border-emerald-500 bg-emerald-50/20 shadow-md ring-2 ring-emerald-500/80 shadow-emerald-500/5'
+                        : 'border-emerald-300 bg-emerald-50/5 hover:border-emerald-400 hover:bg-emerald-50/10 hover:shadow-xs'
+                      : isSelected
+                        ? 'border-indigo-600 bg-indigo-50/20 shadow-sm ring-1 ring-indigo-500'
+                        : 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50/50'
                   }`}
                 >
                   {/* Badge */}
-                  {isCheapest && (
-                    <span className="absolute top-3 right-3 text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                      <Sparkles className="h-3 w-3" /> 最优推荐
+                  {tool.id === 'airwallex' ? (
+                    <span className="absolute top-3 right-3 text-[10px] bg-emerald-600 text-white font-extrabold px-2 py-0.5 rounded-md flex items-center gap-0.5 shadow-2xs">
+                      <Sparkles className="h-3 w-3" /> 最优推荐首选
                     </span>
-                  )}
+                  ) : isCheapest ? (
+                    <span className="absolute top-3 right-3 text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                      <Sparkles className="h-3 w-3" /> 费率优势
+                    </span>
+                  ) : null}
 
                   <div className="flex items-center space-x-2.5">
                     <span
                       className="w-3.5 h-3.5 rounded-full flex-shrink-0"
                       style={{ backgroundColor: tool.logoColor }}
                     />
-                    <h3 className="text-sm font-bold text-slate-800">{tool.name}</h3>
+                    <h3 className="text-sm font-bold text-slate-800">
+                      {tool.name}
+                      {tool.id === 'airwallex' && <span className="text-[10px] text-emerald-600 font-bold ml-1.5">★ 极速降损</span>}
+                    </h3>
                   </div>
 
                   <p className="text-[11px] text-slate-400 mt-2 line-clamp-2">
@@ -185,11 +196,13 @@ export default function PaymentOptimizer({
 
                   <div className="flex justify-between items-center text-[10px] text-slate-400 mt-1">
                     <span>标准费率区间: {(tool.withdrawalFeeMin * 100).toFixed(1)}% - {(tool.withdrawalFeeMax * 100).toFixed(1)}%</span>
-                    {isSelected && (
-                      <span className="text-indigo-600 font-bold flex items-center gap-0.5">
+                    {isSelected ? (
+                      <span className={tool.id === 'airwallex' ? "text-emerald-600 font-bold flex items-center gap-0.5" : "text-indigo-600 font-bold flex items-center gap-0.5"}>
                         <CheckCircle2 className="h-3.5 w-3.5" /> 已启用
                       </span>
-                    )}
+                    ) : tool.id === 'airwallex' ? (
+                      <span className="text-emerald-500/80 font-semibold text-[9px]">建议改用此最优选项</span>
+                    ) : null}
                   </div>
                 </div>
               );
@@ -198,49 +211,59 @@ export default function PaymentOptimizer({
         </div>
 
         {/* 1.5% Exchange Rate loss warning and system suggestion */}
-        <div className="bg-slate-900 text-slate-100 rounded-2xl p-6 relative overflow-hidden shadow">
+        <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-slate-100 rounded-2xl p-7 relative overflow-hidden shadow-xl border-t-4 border-amber-500">
           {/* Subtle decoration */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500 rounded-full blur-3xl opacity-10 pointer-events-none" />
+          <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500 rounded-full blur-3xl opacity-20 pointer-events-none" />
+          <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-emerald-500 rounded-full blur-3xl opacity-10 pointer-events-none" />
 
-          <h3 className="text-sm font-semibold text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
-             2026 跨境结汇提现避坑指南
-          </h3>
+          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <h3 className="text-base font-black text-amber-400 tracking-wider flex items-center gap-2">
+              <span className="p-1 bg-amber-500/20 rounded-md border border-amber-500/30">📖</span>
+              <span>2026 年 TikTok 跨境结汇提现避坑与降本增效白皮书</span>
+            </h3>
+            <span className="text-[10px] bg-indigo-500/30 text-indigo-300 font-extrabold px-2 py-0.5 rounded-md border border-indigo-500/30 uppercase tracking-widest">
+              实时风控指导
+            </span>
+          </div>
 
-          <div className="mt-4 space-y-4 text-xs font-light text-slate-300">
-            <div className="flex items-start space-x-2">
-              <div className="p-1 px-1.5 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded font-semibold text-[10px]">
-                必防
+          <div className="mt-5 space-y-5 text-xs text-slate-300">
+            <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-2 hover:bg-white/8 transition duration-300">
+              <div className="flex items-center space-x-2">
+                <span className="p-1 px-2 bg-rose-500 text-white rounded font-bold text-[10px] uppercase shadow-sm">
+                  重点防范
+                </span>
+                <p className="font-bold text-white text-sm">1.5% 平台隐性汇率波动损耗防线</p>
               </div>
-              <div>
-                <p className="font-semibold text-white">1.5% 汇率损耗防洪线：</p>
-                <p className="text-slate-400 mt-1">
-                  结算提现中，TikTok 平台对美金转本币折算含有 **1.5%** 的隐性汇率波动溢价或电汇手续费。无论采用哪种第三方收款工具，在做最终毛利核算时，公式中应严格扣除此 **1.5% 的汇损空间**，避免“名义盈利、实际亏空”。
-                </p>
-              </div>
+              <p className="text-slate-400 leading-relaxed pl-1 text-[11px]">
+                在 TikTok 平台资金流中，美金转本地账户折算含有大约 <strong className="text-rose-400">1.5% 的隐性汇率损耗区间</strong>（含汇率波幅溢价及电汇转账费）。在进行任何商品零售售价与盈利净值模拟时，<strong className="text-amber-400">必须在终核公式中严格扣减该 1.5% 汇损空间</strong>，以防止出现名义上盈利、实际到账亏空的财务大忌！
+              </p>
             </div>
 
-            <div className="flex items-start space-x-2">
-              <div className="p-1 px-1.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded font-semibold text-[10px]">
-                指南
+            <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-2 hover:bg-white/8 transition duration-300">
+              <div className="flex items-center space-x-2">
+                <span className="p-1 px-2 bg-indigo-600 text-white rounded font-bold text-[10px] uppercase shadow-sm">
+                  议价指南
+                </span>
+                <p className="font-bold text-white text-sm">第三方支付通道费率竞争议价技巧</p>
               </div>
-              <div>
-                <p className="font-semibold text-white">第三方费率撮合技巧：</p>
-                <p className="text-slate-400 mt-1">
-                  目前的各大支付牌照中，当月结汇量超过 $50,000 USD 时，应主动向派安盈、连连、空中云汇等客服申请下调服务手续费。大卖家可直接协商砍至 **0.3% - 0.5%**，这一层优化能直接提升 **0.5% 以上的净利润率**。
-                </p>
-              </div>
+              <p className="text-slate-400 leading-relaxed pl-1 text-[11px]">
+                当月结汇量超过 <strong className="text-indigo-400 font-mono">$50,000 USD</strong> 时，请勿仅使用默认费率！应当即刻主动向连连、派安盈、Airwallex 专属客服申请下调通道手续费。符合规模要求的卖家可以直接将费率协商砍至 <strong className="text-emerald-400 font-mono">0.3% - 0.5%</strong>，此流程优化可<strong>直接变相上浮总体商品净利润率达 0.5% - 0.7%</strong>！
+              </p>
             </div>
 
-            <div className="flex items-start space-x-2">
-              <div className="p-1 px-1.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded font-semibold text-[10px]">
-                推荐
-              </div>
-              <div>
-                <p className="font-semibold text-white">当前最优路径选择：</p>
-                <p className="text-slate-400 mt-1">
-                  当前设定的手续费配置中，**{cheapestTool.name}** 服务费率最低 ({(customPayoutFees[cheapestTool.id] || cheapestTool.defaultFee * 100).toFixed(2)}%)，预计多站点年销千万级可累计省下 **￥{(6800000 * 0.005).toFixed(0)}** 元净成本。
+            <div className="p-4 bg-emerald-950/40 rounded-xl border border-emerald-500/25 space-y-2 hover:bg-emerald-950/60 transition duration-300">
+              <div className="flex items-center space-x-2">
+                <span className="p-1 px-2 bg-emerald-600 text-white rounded font-bold text-[10px] uppercase shadow-sm">
+                  最优建议
+                </span>
+                <p className="font-bold text-emerald-300 text-sm flex items-center gap-1.5">
+                  <span>推荐：首选通道 Airwallex（空中云汇）</span>
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-normal">费率最低/结算快速</span>
                 </p>
               </div>
+              <p className="text-slate-300 leading-relaxed pl-1 text-[11px]">
+                对比当前所有提现结算工具，<strong className="text-white font-semibold">Airwallex (空中云汇)</strong> 拥有压倒性的服务费率优势，默认最低通道首发费率仅为 <strong className="text-emerald-400 font-mono">0.50%</strong>。按多站点年销平均 1000 万人民币进行对换，选择 Airwallex 每年可直接帮助团队额外多省下约 <strong className="text-emerald-300 font-mono">￥{(6800000 * 0.005).toFixed(0)}元</strong> 的真金白银纯收益，堪称当前首选的完美提效方案。
+              </p>
             </div>
           </div>
         </div>

@@ -175,25 +175,64 @@ export default function App() {
     <div className="min-h-screen bg-slate-50/60 font-sans text-slate-800 flex flex-col antialiased">
       
       {/* Header and Brand */}
-      <header className="bg-slate-900 text-white py-6 px-4 sm:px-8 border-b border-slate-800 shadow-md">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="px-3.5 py-1.5 bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-black text-2xl rounded-xl tracking-wider shadow-lg shadow-indigo-500/10 border border-indigo-500 select-none">
-              <span className="text-amber-300">TK</span>count
-            </div>
-            <div className="border-l border-slate-700 pl-3">
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-bold tracking-wider text-indigo-400 uppercase">TIKTOK SHOP REAL-TIME FINANCE MATRIX</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+      <header className="bg-slate-900 text-white py-5 px-4 sm:px-8 border-b border-slate-800 shadow-md">
+        <div className="max-w-7xl mx-auto w-full flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col">
+            <div className="flex items-center space-x-3">
+              <div className="px-3.5 py-1.5 bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-black text-2xl rounded-xl tracking-wider shadow-lg shadow-indigo-500/10 border border-indigo-500 select-none">
+                Price<span className="text-amber-300">Snap</span>
               </div>
-              <p className="text-[11px] text-slate-400 font-medium">跨境电商多站点售价逆向推演与财务深度透视平台</p>
+              <span className="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-bold">
+                TikTok Shop 跨境精算版
+              </span>
             </div>
+            <p className="text-slate-400 font-medium text-xs mt-2 select-none tracking-wide">
+              用计算替代直觉，让利润更清晰
+            </p>
+          </div>
+
+          {/* Live Rates Ribbon */}
+          <div className="flex flex-wrap items-center gap-3 bg-slate-800/40 p-2.5 rounded-xl border border-slate-800/80 max-w-full md:max-w-2xl">
+            <div className="flex items-center space-x-1.5 text-xs text-slate-400 font-bold border-r border-slate-700/60 pr-2.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span>实时参考汇率 :</span>
+            </div>
+            <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
+              <div className="bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-750 flex items-center gap-1.5 shadow-sm">
+                <span className="text-xs">🇺🇸</span>
+                <span className="text-slate-400 font-mono">USD/CNY</span>
+                <span className="text-indigo-400 font-bold font-mono">{exchangeRateUSDToCNY.toFixed(4)}</span>
+              </div>
+              <div className="bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-750 flex items-center gap-1.5 shadow-sm">
+                <span className="text-xs">🇬🇧</span>
+                <span className="text-slate-400 font-mono">GBP/CNY</span>
+                <span className="text-indigo-400 font-bold font-mono">{(exchangeRateUSDToCNY / (exchangeRates.GBP || 0.78)).toFixed(4)}</span>
+              </div>
+              <div className="bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-750 flex items-center gap-1.5 shadow-sm">
+                <span className="text-xs">🇲🇾</span>
+                <span className="text-slate-400 font-mono">MYR/CNY</span>
+                <span className="text-indigo-400 font-bold font-mono">{(exchangeRateUSDToCNY / (exchangeRates.MYR || 4.70)).toFixed(4)}</span>
+              </div>
+              <div className="bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-750 flex items-center gap-1.5 shadow-sm">
+                <span className="text-xs">🇯🇵</span>
+                <span className="text-slate-400 font-mono">100JPY/CNY</span>
+                <span className="text-indigo-400 font-bold font-mono">{((exchangeRateUSDToCNY / (exchangeRates.JPY || 156.0)) * 100).toFixed(4)}</span>
+              </div>
+            </div>
+            {ratesFetchedAt && (
+              <span className="text-[10px] text-slate-500 font-mono hidden xl:inline">
+                更新: {ratesFetchedAt.split(' ')[1] || ratesFetchedAt}
+              </span>
+            )}
           </div>
         </div>
       </header>
 
       {/* Main Core View Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      <main className="flex-1 w-full p-4 sm:p-6 lg:p-8 space-y-6">
         
         {/* Tab Selection Row */}
         <div className="border-b border-slate-200 pb-px flex sm:justify-between items-center flex-wrap gap-2">
