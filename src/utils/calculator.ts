@@ -471,13 +471,15 @@ export function calculateMultiSiteSimulation(
     const businessMode = input.businessMode || 'virtual';
     const isVirtual = businessMode === 'virtual';
 
-    const domesticShippingRMB = isVirtual ? (input.domesticShippingRMB !== undefined ? input.domesticShippingRMB : 5) : 0;
-    const internationalShippingRMB = isVirtual ? (input.internationalShippingRMB !== undefined ? input.internationalShippingRMB : 15) : 0;
+    // First leg logistics / domestic & international head-trip shipping is always factored in if provided
+    const domesticShippingRMB = input.domesticShippingRMB !== undefined ? input.domesticShippingRMB : 5;
+    const internationalShippingRMB = input.internationalShippingRMB !== undefined ? input.internationalShippingRMB : 15;
     const packagingLossRMB = input.packagingLossRMB !== undefined ? input.packagingLossRMB : 2;
     const generalExpensesRMB = input.generalExpensesRMB !== undefined ? input.generalExpensesRMB : 2;
+    const inboundFeeRMB = input.inboundFeeRMB !== undefined ? input.inboundFeeRMB : 1.5; // FBA/WFS/FBT inbound warehousing handling/labeling fee (RMB)
 
-    // Total base COGS in RMB (总本币成本)
-    const totalRmbCost = cogsRMB + domesticShippingRMB + internationalShippingRMB + packagingLossRMB + generalExpensesRMB;
+    // Total base COGS in RMB (总本币成本, includes COGS, first leg, packaging, general expenses and warehouse entry fees)
+    const totalRmbCost = cogsRMB + domesticShippingRMB + internationalShippingRMB + packagingLossRMB + generalExpensesRMB + inboundFeeRMB;
 
     // Convert cost items to local currency
     const cogsLocal = cogsRMB * cnyToLocalRate;
@@ -485,6 +487,7 @@ export function calculateMultiSiteSimulation(
     const internationalShippingLocal = internationalShippingRMB * cnyToLocalRate;
     const packagingLossLocal = packagingLossRMB * cnyToLocalRate;
     const generalExpensesLocal = generalExpensesRMB * cnyToLocalRate;
+    const inboundFeeLocal = inboundFeeRMB * cnyToLocalRate;
     const totalCostLocal = totalRmbCost * cnyToLocalRate;
 
     // Auto-calculate fulfillment and storage if Amazon/Walmart
@@ -722,6 +725,7 @@ export function calculateMultiSiteSimulation(
       taxes: finalMetrics.taxes,
       storageFeeLocal: resolvedStorageFeeLocal,
       fbtFeeLocal: resolvedFbtFeeLocal,
+      inboundFeeLocal: inboundFeeLocal,
       grossProfit,
       grossMargin,
       isGrossMarginSafe,

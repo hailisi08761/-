@@ -1,12 +1,20 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
+import dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
 const PORT = 3000;
 
+// Enable JSON parser for POST requests
+app.use(express.json());
+
 // Memory cache for exchange rates to avoid hitting rate limits and provide high speed
 let cachedRates: {
+
   rates: Record<string, number>;
   fetchedAt: string;
   source: string;

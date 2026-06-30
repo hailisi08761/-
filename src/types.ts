@@ -58,6 +58,7 @@ export interface SimulationInput {
   forwardShippingCostLocal: number; // 卖家向平台/货代付的跨境运费 (local currency)
   fbtFeeLocal: number; // FBT fulfillment/handling fee (local currency)
   storageFeeLocal: number; // Premium warehouse storage fee (local currency)
+  inboundFeeRMB?: number; // FBA/WFS/FBT入仓费用 (RMB)
   
   // Marketing & Affiliate
   affiliateCommissionRate: number; // Creator commission percentage (达人佣金率, e.g. 10% = 0.1)
@@ -135,6 +136,7 @@ export interface MultiSiteResult {
   taxes: number;
   storageFeeLocal?: number;
   fbtFeeLocal?: number;
+  inboundFeeLocal?: number;
   
   // Gross profits (毛利)
   grossProfit: number;
@@ -155,4 +157,25 @@ export interface MultiSiteResult {
   isROASHealthy: boolean;
   eCPA: number;
   suggestedPriceLocal: number;
+}
+
+export interface MonthlyOrder {
+  id: string;
+  productName: string;
+  quantity: number;
+  siteId: string;
+  salesRevenueLocal: number;
+  status?: string;
+  sellerSku?: string;
+  subtotalBeforeDiscount?: number;
+  platformDiscount?: number;
+  sellerDiscount?: number;
+  subtotalAfterDiscount?: number;
+  shippingFeeLocal?: number;
+  taxesLocal?: number;
+  orderAmount?: number;
+  refundAmount?: number;
+  category?: string;
+  weightKg?: number;
+  isTikTokSettlement?: boolean;
 }
