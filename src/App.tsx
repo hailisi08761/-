@@ -24,6 +24,43 @@ import {
   Info
 } from 'lucide-react';
 
+const formatToBeijingTime = (dateInput: string | Date | null): string => {
+  if (!dateInput) return '';
+  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  
+  try {
+    const formatter = new Intl.DateTimeFormat('zh-CN', {
+      timeZone: 'Asia/Shanghai',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    const parts = formatter.formatToParts(date);
+    const year = parts.find(p => p.type === 'year')?.value;
+    const month = parts.find(p => p.type === 'month')?.value;
+    const day = parts.find(p => p.type === 'day')?.value;
+    const hour = parts.find(p => p.type === 'hour')?.value;
+    const minute = parts.find(p => p.type === 'minute')?.value;
+    const second = parts.find(p => p.type === 'second')?.value;
+    return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+  } catch (e) {
+    const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+    const bjDate = new Date(utc + (3600000 * 8));
+    
+    const y = bjDate.getFullYear();
+    const m = String(bjDate.getMonth() + 1).padStart(2, '0');
+    const d = String(bjDate.getDate()).padStart(2, '0');
+    const hr = String(bjDate.getHours()).padStart(2, '0');
+    const min = String(bjDate.getMinutes()).padStart(2, '0');
+    const sec = String(bjDate.getSeconds()).padStart(2, '0');
+    return `${y}-${m}-${d} ${hr}:${min}:${sec}`;
+  }
+};
+
 export default function App() {
   // 1. Core Simulation State (Synced across tabs for continuous calculations)
   const [input, setInput] = useState<SimulationInput>({
@@ -74,7 +111,7 @@ export default function App() {
 
   // Rates fetch state configuration
   const [ratesLoading, setRatesLoading] = useState<boolean>(false);
-  const [ratesFetchedAt, setRatesFetchedAt] = useState<string | null>(null);
+  const [ratesFetchedAt, setRatesFetchedAt] = useState<string>(() => new Date().toISOString());
   const [ratesSource, setRatesSource] = useState<string | null>(null);
 
   // Pull rates from the Express backend service
@@ -89,7 +126,8 @@ export default function App() {
             setExchangeRateUSDToCNY(data.rates.CNY);
           }
           setExchangeRates(data.rates);
-          setRatesFetchedAt(data.fetchedAt);
+          // Always use the latest current time on page open/refresh to guarantee real-time Beijing Time
+          setRatesFetchedAt(new Date().toISOString());
           setRatesSource(data.source);
         }
       }
@@ -99,6 +137,16 @@ export default function App() {
       setRatesLoading(false);
     }
   };
+
+  // Real-time ticking clock synchronized with Beijing Time
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Auto-init load on mount
   useEffect(() => {
@@ -175,59 +223,72 @@ export default function App() {
     <div className="min-h-screen bg-slate-50/60 font-sans text-slate-800 flex flex-col antialiased">
       
       {/* Header and Brand */}
-      <header className="bg-slate-900 text-white py-5 px-4 sm:px-8 border-b border-slate-800 shadow-md">
-        <div className="max-w-7xl mx-auto w-full flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex flex-col">
-            <div className="flex items-center space-x-3">
-              <div className="px-3.5 py-1.5 bg-gradient-to-r from-indigo-500 to-indigo-700 text-white font-black text-2xl rounded-xl tracking-wider shadow-lg shadow-indigo-500/10 border border-indigo-500 select-none">
-                Price<span className="text-amber-300">Snap</span>
-              </div>
-              <span className="text-xs bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full font-bold">
-                TikTok Shop 跨境精算版
+      <header className="bg-slate-900 text-white py-3.5 px-4 sm:px-8 border-b border-slate-800 shadow-md">
+        <div className="w-full flex flex-col md:flex-row items-center justify-between gap-4">
+          
+          {/* Left: Branding & Slogans */}
+          <div className="flex flex-col items-start select-none py-1 notranslate" translate="no">
+            <div className="text-white font-black text-2xl tracking-wider select-none flex items-center notranslate" translate="no">
+              {/* Splitting characters to completely prevent browser translation engines from translating the brand name */}
+              <span className="flex notranslate" translate="no">
+                {"Price".split("").map((char, i) => (
+                  <span key={`p-${i}`} className="notranslate" translate="no">{char}</span>
+                ))}
+              </span>
+              <span className="flex text-amber-300 notranslate" translate="no">
+                {"Snap".split("").map((char, i) => (
+                  <span key={`s-${i}`} className="notranslate" translate="no">{char}</span>
+                ))}
               </span>
             </div>
-            <p className="text-slate-400 font-medium text-xs mt-2 select-none tracking-wide">
-              用计算替代直觉，让利润更清晰
-            </p>
+            <div className="mt-1.5 select-none text-left">
+              <p className="text-slate-200 font-bold text-xs tracking-wide">
+                算的是利润，赢的是未来
+              </p>
+              <p className="text-slate-400 font-medium text-[11px] mt-0.5 tracking-wider">
+                所有成本皆是铺垫，一身孤勇祝我们逆风翻盘
+              </p>
+            </div>
           </div>
 
-          {/* Live Rates Ribbon */}
-          <div className="flex flex-wrap items-center gap-3 bg-slate-800/40 p-2.5 rounded-xl border border-slate-800/80 max-w-full md:max-w-2xl">
-            <div className="flex items-center space-x-1.5 text-xs text-slate-400 font-bold border-r border-slate-700/60 pr-2.5">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          {/* Right: Live Rates Ribbon */}
+          <div className="flex items-center justify-center md:justify-end max-w-full">
+            <div translate="no" className="notranslate flex flex-wrap items-center justify-center md:justify-end gap-3.5 bg-slate-800/35 px-3.5 py-1.5 rounded-xl border border-slate-800/60 w-full md:w-auto text-xs">
+              <div className="flex items-center space-x-1.5 text-slate-400 font-bold border-r border-slate-700/60 pr-3">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span>参考汇率 (CNY) :</span>
+              </div>
+              <div className="flex flex-wrap gap-2 text-[11px] font-bold justify-center">
+                <div className="bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-800 flex items-center gap-1.5 shadow-sm">
+                  <span>🇺🇸</span>
+                  <span className="text-slate-300 font-mono">USD</span>
+                  <span className="text-indigo-400 font-bold font-mono">{exchangeRateUSDToCNY.toFixed(4)}</span>
+                </div>
+                <div className="bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-800 flex items-center gap-1.5 shadow-sm">
+                  <span>🇬🇧</span>
+                  <span className="text-slate-300 font-mono">GBP</span>
+                  <span className="text-indigo-400 font-bold font-mono">{(exchangeRateUSDToCNY / (exchangeRates.GBP || 0.78)).toFixed(4)}</span>
+                </div>
+                <div className="bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-800 flex items-center gap-1.5 shadow-sm">
+                  <span>🇲🇾</span>
+                  <span className="text-slate-300 font-mono">MYR</span>
+                  <span className="text-indigo-400 font-bold font-mono">{(exchangeRateUSDToCNY / (exchangeRates.MYR || 4.70)).toFixed(4)}</span>
+                </div>
+                <div className="bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-800 flex items-center gap-1.5 shadow-sm">
+                  <span>🇯🇵</span>
+                  <span className="text-slate-300 font-mono">100JPY</span>
+                  <span className="text-indigo-400 font-bold font-mono">{((exchangeRateUSDToCNY / (exchangeRates.JPY || 156.0)) * 100).toFixed(4)}</span>
+                </div>
+              </div>
+              <span className="text-[10px] text-slate-400 font-bold font-mono hidden xl:inline border-l border-slate-700/60 pl-3">
+                北京时间: {formatToBeijingTime(currentTime)}
               </span>
-              <span>实时参考汇率 :</span>
             </div>
-            <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
-              <div className="bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-750 flex items-center gap-1.5 shadow-sm">
-                <span className="text-xs">🇺🇸</span>
-                <span className="text-slate-400 font-mono">USD/CNY</span>
-                <span className="text-indigo-400 font-bold font-mono">{exchangeRateUSDToCNY.toFixed(4)}</span>
-              </div>
-              <div className="bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-750 flex items-center gap-1.5 shadow-sm">
-                <span className="text-xs">🇬🇧</span>
-                <span className="text-slate-400 font-mono">GBP/CNY</span>
-                <span className="text-indigo-400 font-bold font-mono">{(exchangeRateUSDToCNY / (exchangeRates.GBP || 0.78)).toFixed(4)}</span>
-              </div>
-              <div className="bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-750 flex items-center gap-1.5 shadow-sm">
-                <span className="text-xs">🇲🇾</span>
-                <span className="text-slate-400 font-mono">MYR/CNY</span>
-                <span className="text-indigo-400 font-bold font-mono">{(exchangeRateUSDToCNY / (exchangeRates.MYR || 4.70)).toFixed(4)}</span>
-              </div>
-              <div className="bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-750 flex items-center gap-1.5 shadow-sm">
-                <span className="text-xs">🇯🇵</span>
-                <span className="text-slate-400 font-mono">100JPY/CNY</span>
-                <span className="text-indigo-400 font-bold font-mono">{((exchangeRateUSDToCNY / (exchangeRates.JPY || 156.0)) * 100).toFixed(4)}</span>
-              </div>
-            </div>
-            {ratesFetchedAt && (
-              <span className="text-[10px] text-slate-500 font-mono hidden xl:inline">
-                更新: {ratesFetchedAt.split(' ')[1] || ratesFetchedAt}
-              </span>
-            )}
           </div>
+
         </div>
       </header>
 

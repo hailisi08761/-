@@ -69,6 +69,9 @@ export default function SiteSimulator({
   const [rentCostRMB, setRentCostRMB] = useState<string>('');
   const [erpCostRMB, setErpCostRMB] = useState<string>('');
   const [otherFixedCostRMB, setOtherFixedCostRMB] = useState<string>('');
+  const [evalSKUName, setEvalSKUName] = useState<string>('');
+  const [customSKUCogsRMB, setCustomSKUCogsRMB] = useState<string>('');
+  const [customSKULogisticsRMB, setCustomSKULogisticsRMB] = useState<string>('');
 
   // 平台后台月度订单精算与成本识别 States
   const [monthlyOrders, setMonthlyOrders] = useState<Array<{ id: string; productName: string; quantity: number; siteId: string; salesRevenueLocal: number }>>([]);
@@ -333,6 +336,16 @@ export default function SiteSimulator({
   const generalExpensesRmb = input.generalExpensesRMB !== undefined ? input.generalExpensesRMB : 2.0;
   const totalCostRMB = cogsRMB + domesticShipping + internationalShipping + packagingLossRMB + generalExpensesRmb;
 
+  const defaultUnitLogisticsCNY = selectedResult
+    ? (selectedResult.forwardLogistics || 0) * selectedResult.exchangeRateToCNY +
+      (selectedResult.fbtFeeLocal || 0) * selectedResult.exchangeRateToCNY +
+      (selectedResult.storageFeeLocal || 0) * selectedResult.exchangeRateToCNY +
+      (selectedResult.returnLoss || 0) * selectedResult.exchangeRateToCNY
+    : 0;
+
+  const activeSKUCogsRMB = customSKUCogsRMB !== '' ? (parseFloat(customSKUCogsRMB) || 0) : cogsRMB;
+  const activeSKULogisticsRMB = customSKULogisticsRMB !== '' ? (parseFloat(customSKULogisticsRMB) || 0) : defaultUnitLogisticsCNY;
+
   // Helper to calculate pricing based on target profit margin to yield EXACTLY that target margin
   const calculatePriceForTargetMargin = (targetMarginPercent: number) => {
     // Solves for reverse price numerically by calling the robust calculator engine
@@ -381,6 +394,500 @@ export default function SiteSimulator({
     FR: '🇫🇷',
     IT: '🇮🇹',
     ES: '🇪🇸'
+  };
+
+  const downloadEnterprisePricingReport = () => {
+    const ordersNum = parseFloat(historicalMonthlyOrders) || 0;
+    const staffVal = parseFloat(staffCostRMB) || 0;
+    const rentVal = parseFloat(rentCostRMB) || 0;
+    const erpVal = parseFloat(erpCostRMB) || 0;
+    const otherVal = parseFloat(otherFixedCostRMB) || 0;
+    const totalMonthlyFixedCostRMB = staffVal + rentVal + erpVal + otherVal;
+    const fixedCostPerOrderRMB = ordersNum > 0 ? totalMonthlyFixedCostRMB / ordersNum : 0;
+
+    const friendlyCategoryNames: Record<string, string> = {
+      fashion: "服装、鞋包及配饰",
+      cosmetics: "美妆个护与美发",
+      electronics: "手机数码办公",
+      electronics_device: "智能数码设备",
+      electronics_accessories: "数码电子配件",
+      home: "家居厨房生活",
+      sports: "运动户外车配",
+      toys: "玩具收藏动漫",
+      collectibles: "手办文具收藏",
+      jewelry: "轻奢高雅珠宝",
+      books: "学术印刷书籍",
+      grocery: "食品杂货饮料",
+    };
+
+    const reportSitesData = results.map(r => {
+      const rExchangeRate = r.exchangeRateToCNY;
+      
+      // original costs for r
+      const rOriginalCogsLocal = cogsRMB / rExchangeRate;
+      const rUnitForwardLogisticsCNY = (r.forwardLogistics || 0) * rExchangeRate;
+      const rUnitFbtFeeCNY = (r.fbtFeeLocal || 0) * rExchangeRate;
+      const rUnitStorageFeeCNY = (r.storageFeeLocal || 0) * rExchangeRate;
+      const rUnitReturnLossCNY = (r.returnLoss || 0) * rExchangeRate;
+      const rOriginalUnitTotalLogisticsCNY = rUnitForwardLogisticsCNY + rUnitFbtFeeCNY + rUnitStorageFeeCNY + rUnitReturnLossCNY;
+      const rOriginalLogisticsLocal = rOriginalUnitTotalLogisticsCNY / rExchangeRate;
+
+      // overridden active costs for r
+      const rActiveCogsLocal = activeSKUCogsRMB / rExchangeRate;
+      const rActiveLogisticsLocal = activeSKULogisticsRMB / rExchangeRate;
+
+      // fixed cost per order in local currency for r
+      const rFixedCostPerOrderLocal = fixedCostPerOrderRMB / rExchangeRate;
+
+      // adjusted net profit for r
+      const rAdjustedItemNetProfitLocal = r.netProfit + (rOriginalCogsLocal - rActiveCogsLocal) + (rOriginalLogisticsLocal - rActiveLogisticsLocal);
+      const rEnterpriseNetProfitLocal = rAdjustedItemNetProfitLocal - rFixedCostPerOrderLocal;
+      const rEnterpriseNetMargin = r.suggestedPriceLocal > 0 ? (rEnterpriseNetProfitLocal / r.suggestedPriceLocal) * 100 : 0;
+
+      // convert everything to CNY for standard bar chart comparison
+      const rPriceCNY = r.suggestedPriceLocal * rExchangeRate;
+      const rPayoutReceivedCNY = (r.suggestedPriceLocal - ((r.commissionFee || 0) + (r.transactionFee || 0) + (r.creatorCommission || 0) + (r.taxes || 0) + (r.fbtFeeLocal || 0) + (r.storageFeeLocal || 0) + (r.withdrawalFee || 0) + (r.exchangeLossBuffer || 0))) * rExchangeRate;
+      const rTotalCostCNY = activeSKUCogsRMB + activeSKULogisticsRMB + fixedCostPerOrderRMB;
+      const rNetProfitCNY = rEnterpriseNetProfitLocal * rExchangeRate;
+
+      return {
+        siteId: r.siteId,
+        siteName: r.siteName,
+        currency: r.currency,
+        symbol: r.symbol,
+        exchangeRateToCNY: rExchangeRate,
+        suggestedPriceLocal: r.suggestedPriceLocal,
+        enterpriseNetProfitLocal: rEnterpriseNetProfitLocal,
+        enterpriseNetMargin: rEnterpriseNetMargin,
+        originalNetMargin: r.netMargin,
+        priceCNY: rPriceCNY,
+        payoutReceivedCNY: rPayoutReceivedCNY,
+        totalCostCNY: rTotalCostCNY,
+        netProfitCNY: rNetProfitCNY,
+        fixedCostPerOrderLocal: rFixedCostPerOrderLocal,
+        activeCogsLocal: rActiveCogsLocal,
+        activeLogisticsLocal: rActiveLogisticsLocal
+      };
+    });
+
+    const skuLabel = evalSKUName || "当前评估单品";
+    const reportDate = new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' });
+
+    // Pre-build the HTML table rows and chart data strings to prevent nested template literal parsing bugs
+    const tableRowsHtml = reportSitesData.map(r => {
+      const is达标 = r.enterpriseNetMargin >= (input.targetProfitMarginRate || 20);
+      const flagStr = siteFlagMap[r.siteId] || '🌐';
+      const targetMarginRate = input.targetProfitMarginRate || 20;
+      const statusBadge = is达标 
+        ? `<span class="badge badge-success">✓ 达标 (${targetMarginRate}%)</span>` 
+        : `<span class="badge badge-danger">⚠️ 不达标</span>`;
+      
+      return `<tr>
+        <td><strong>${flagStr} ${r.siteName} (${r.siteId})</strong></td>
+        <td><span style="font-family: monospace; font-weight: bold;">${r.currency}</span></td>
+        <td><span style="font-family: monospace; font-weight: bold;">${r.symbol}${r.suggestedPriceLocal.toFixed(2)}</span></td>
+        <td><span style="font-family: monospace; font-weight: bold;">￥${r.priceCNY.toFixed(2)}</span></td>
+        <td><span style="font-family: monospace;">￥${activeSKULogisticsRMB.toFixed(2)}</span></td>
+        <td><span style="font-family: monospace;">￥${fixedCostPerOrderRMB.toFixed(2)}</span></td>
+        <td><span style="font-family: monospace; font-weight: bold; color: #059669;">￥${r.payoutReceivedCNY.toFixed(2)}</span></td>
+        <td><span style="font-family: monospace; font-weight: bold;">${r.originalNetMargin.toFixed(1)}%</span></td>
+        <td><span style="font-family: monospace; font-weight: 900; color: ${r.enterpriseNetMargin >= 0 ? '#2563eb' : '#dc2626'}">${r.enterpriseNetMargin.toFixed(1)}%</span></td>
+        <td>${statusBadge}</td>
+      </tr>`;
+    }).join('\n');
+
+    const chartLabels = reportSitesData.map(r => `"${r.siteName}"`).join(',');
+    const chartPriceCNY = reportSitesData.map(r => r.priceCNY.toFixed(2)).join(',');
+    const chartPayoutReceivedCNY = reportSitesData.map(r => r.payoutReceivedCNY.toFixed(2)).join(',');
+    const chartTotalCostCNY = reportSitesData.map(r => r.totalCostCNY.toFixed(2)).join(',');
+    const chartOriginalNetMargin = reportSitesData.map(r => r.originalNetMargin.toFixed(1)).join(',');
+    const chartEnterpriseNetMargin = reportSitesData.map(r => r.enterpriseNetMargin.toFixed(1)).join(',');
+
+    // HTML Content with Chart.js embedded to show bar and line charts
+    const htmlContent = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>PriceSnap 企业全链路多站点利润对比与定价精算报告</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      margin: 0;
+      padding: 0;
+      line-height: 1.5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    .header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      color: white;
+      padding: 35px 40px;
+      border-radius: 24px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.15);
+      position: relative;
+    }
+    .brand {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+    }
+    .brand span.snap {
+      color: #fbbf24;
+    }
+    .slogan {
+      font-size: 15px;
+      color: #cbd5e1;
+      margin-top: 6px;
+      font-weight: 650;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 25px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 20px;
+      font-size: 13px;
+      color: #cbd5e1;
+    }
+    .meta-item strong {
+      color: white;
+      display: block;
+      font-size: 15px;
+      margin-top: 2px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 24px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    .card-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .card-value {
+      font-size: 26px;
+      font-weight: 900;
+      color: #0f172a;
+      font-family: Menlo, Monaco, Consolas, monospace;
+    }
+    .card-sub {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 6px;
+      font-weight: 500;
+    }
+    .section-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #1e293b;
+      margin: 35px 0 15px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-title::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 18px;
+      background-color: #4f46e5;
+      border-radius: 2px;
+    }
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+      margin-bottom: 30px;
+    }
+    @media (max-width: 900px) {
+      .chart-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .chart-box {
+      background: white;
+      border-radius: 20px;
+      padding: 24px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    .chart-box-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #334155;
+      margin-bottom: 15px;
+      border-b: 1px solid #f1f5f9;
+      padding-bottom: 10px;
+    }
+    .table-container {
+      background: white;
+      border-radius: 20px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      overflow-x: auto;
+      margin-bottom: 30px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+    }
+    th {
+      background-color: #f8fafc;
+      color: #475569;
+      font-weight: 800;
+      padding: 15px 20px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    td {
+      padding: 15px 20px;
+      border-bottom: 1px solid #e2e8f0;
+      color: #334155;
+    }
+    tr:last-child td {
+      border-bottom: none;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .badge-success {
+      background-color: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+    }
+    .badge-danger {
+      background-color: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 60px;
+      font-size: 12px;
+      color: #64748b;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 25px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand">Price<span class="snap">Snap</span></div>
+      <div class="slogan">算的是利润，赢的是未来。所有成本皆是铺垫，一身孤勇祝我们逆风翻盘。</div>
+      <div class="meta-grid">
+        <div class="meta-item">评估商品 / SKU:<strong>${skuLabel}</strong></div>
+        <div class="meta-item">月总规划订单量:<strong>${ordersNum.toLocaleString()} 单/月</strong></div>
+        <div class="meta-item">品类归属:<strong>${friendlyCategoryNames[input.category] || "普通大类"}</strong></div>
+        <div class="meta-item">报告导出时间 (北京时间):<strong>${reportDate}</strong></div>
+      </div>
+    </div>
+
+    <div class="section-title">企业级运营财务大盘 (CNY)</div>
+    <div class="grid">
+      <div class="card">
+        <div class="card-title">月度企业固定支出 (总和)</div>
+        <div class="card-value">￥${totalMonthlyFixedCostRMB.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        <div class="card-sub">包含员工薪资、场地租金、系统工具等固定开销</div>
+      </div>
+      <div class="card">
+        <div class="card-title">单均固定摊销成本 (每单)</div>
+        <div class="card-value" style="color: #4f46e5;">￥${fixedCostPerOrderRMB.toFixed(2)}</div>
+        <div class="card-sub">基于规划出单量均摊到每件商品上的固定运营成本</div>
+      </div>
+      <div class="card">
+        <div class="card-title">评估 SKU 单件采购成本</div>
+        <div class="card-value" style="color: #d97706;">￥${activeSKUCogsRMB.toFixed(2)}</div>
+        <div class="card-sub">核算商品的出厂纯采购价 (CNY)</div>
+      </div>
+      <div class="card">
+        <div class="card-title">评估 SKU 综合物流成本 (CNY)</div>
+        <div class="card-value" style="color: #0891b2;">￥${activeSKULogisticsRMB.toFixed(2)}</div>
+        <div class="card-sub">含国内打包、干线和目的国 FBA/FBM 配送费公摊</div>
+      </div>
+    </div>
+
+    <div class="section-title">4大核心站点对比数据可视化</div>
+    <div class="chart-grid">
+      <div class="chart-box">
+        <div class="chart-box-title">各站点核心财务金额指标对比 (折合人民币 CNY / 单件)</div>
+        <div style="position: relative; height:320px; width:100%">
+          <canvas id="barChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-box-title">各站点企业最终实际纯利率 vs 公摊前单品净利率 (%)</div>
+        <div style="position: relative; height:320px; width:100%">
+          <canvas id="lineChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">4大站点精算指标明细对比表</div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>目标站点</th>
+            <th>结算币种</th>
+            <th>零售定价 (外币)</th>
+            <th>折合零售价 (CNY)</th>
+            <th>干线+派送物流费</th>
+            <th>单单摊销固收 (CNY)</th>
+            <th>结汇到账净额 (CNY)</th>
+            <th>公摊前净利率</th>
+            <th>企业最终实际纯利率</th>
+            <th>利润达标状态</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRowsHtml}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      <p>© PriceSnap 跨境多站点精算对账工具 | 算的是利润，赢的是未来</p>
+    </div>
+  </div>
+
+  <script>
+    // 1. Data Preparation
+    const labels = [${chartLabels}];
+    const priceCNY = [${chartPriceCNY}];
+    const payoutReceivedCNY = [${chartPayoutReceivedCNY}];
+    const totalCostCNY = [${chartTotalCostCNY}];
+    
+    const originalNetMargin = [${chartOriginalNetMargin}];
+    const enterpriseNetMargin = [${chartEnterpriseNetMargin}];
+
+    // 2. Render Bar Chart
+    const barCtx = document.getElementById('barChart').getContext('2d');
+    new Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: '商品定价 (RMB)',
+            data: priceCNY,
+            backgroundColor: '#818cf8',
+            borderColor: '#4f46e5',
+            borderWidth: 1,
+            borderRadius: 6
+          },
+          {
+            label: '银行到账金额 (RMB)',
+            data: payoutReceivedCNY,
+            backgroundColor: '#34d399',
+            borderColor: '#059669',
+            borderWidth: 1,
+            borderRadius: 6
+          },
+          {
+            label: '单均总成本 (RMB)',
+            data: totalCostCNY,
+            backgroundColor: '#fca5a5',
+            borderColor: '#ef4444',
+            borderWidth: 1,
+            borderRadius: 6
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { font: { weight: 'bold', size: 11 } } }
+        },
+        scales: {
+          y: { beginAtZero: true, grid: { color: '#f1f5f9' }, title: { display: true, text: '折合人民币 (元)', font: { weight: 'bold' } } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+
+    // 3. Render Line Chart
+    const lineCtx = document.getElementById('lineChart').getContext('2d');
+    new Chart(lineCtx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: '企业真实纯利率 (%)',
+            data: enterpriseNetMargin,
+            borderColor: '#2563eb',
+            backgroundColor: '#eff6ff',
+            borderWidth: 3,
+            pointRadius: 6,
+            pointBackgroundColor: '#2563eb',
+            tension: 0.2,
+            fill: false
+          },
+          {
+            label: '公摊前单品利润率 (%)',
+            data: originalNetMargin,
+            borderColor: '#94a3b8',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            pointRadius: 4,
+            pointBackgroundColor: '#94a3b8',
+            tension: 0.2,
+            fill: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top', labels: { font: { weight: 'bold', size: 11 } } }
+        },
+        scales: {
+          y: { grid: { color: '#f1f5f9' }, title: { display: true, text: '利润率 (%)', font: { weight: 'bold' } } },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  </script>
+</body>
+</html>`;
+
+    // Trigger download
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), htmlContent], { type: 'text/html;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `PriceSnap_企业全链路多站点定价精算对比报告_${skuLabel}.html`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Switcher dynamic formatting utility
@@ -556,7 +1063,7 @@ export default function SiteSimulator({
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-slate-600">支付及收款费率:</span>
                     <span className="font-extrabold text-indigo-600 font-mono text-sm">
-                      {platformId === 'amazon' ? '0.0%' : `${(selectedResult.thirdPartyPayoutFeeRate || 0.6).toFixed(1)}%`}
+                      {`${(selectedResult.thirdPartyPayoutFeeRate || 0.6).toFixed(1)}%`}
                     </span>
                   </div>
                   {fixedFee > 0 && (
@@ -635,22 +1142,130 @@ export default function SiteSimulator({
                 </div>
 
                 {/* 业务模式 选择 */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-bold text-slate-750 pl-0.5">
-                    业务模式
-                  </label>
-                  <select
-                    value={input.businessMode || 'virtual'}
-                    onChange={(e) => {
-                      onChangeInput('businessMode', e.target.value);
-                    }}
-                    className="w-full px-4 py-3 text-sm font-bold text-slate-800 bg-slate-50 border border-slate-250 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white cursor-pointer transition-all"
-                  >
-                    <option value="virtual">虚拟仓模式 (Drop-shipping / 跨境直邮)</option>
-                    <option value="local">官方本土仓模式 (Official Warehouse / FBT托管)</option>
-                    <option value="overseas">海外仓第三方模式 (Overseas Warehouse / 3PL自发货)</option>
-                  </select>
-                </div>
+                {platformId === 'amazon' && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-bold text-slate-750 pl-0.5">
+                      亚马逊运营模式 (Business Mode)
+                    </label>
+                    <select
+                      value={input.amazonBusinessMode || 'FBA'}
+                      onChange={(e) => onChangeInput('amazonBusinessMode', e.target.value)}
+                      className="w-full px-4 py-3 text-sm font-bold text-slate-800 bg-slate-50 border border-slate-250 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white cursor-pointer transition-all"
+                    >
+                      <option value="FBA">FBA (亚马逊配送 - 智能计费)</option>
+                      <option value="FBM">FBM (卖家自配送 - 卖家履约)</option>
+                      <option value="SFP">SFP (卖家自配送创始会员制)</option>
+                      <option value="AWD">AWD (入仓分销服务 - 拼箱/仓储)</option>
+                    </select>
+                  </div>
+                )}
+
+                {platformId === 'walmart' && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-bold text-slate-750 pl-0.5">
+                      沃尔玛运营模式 (Business Mode)
+                    </label>
+                    <select
+                      value={input.walmartBusinessMode || 'WFS'}
+                      onChange={(e) => onChangeInput('walmartBusinessMode', e.target.value)}
+                      className="w-full px-4 py-3 text-sm font-bold text-slate-800 bg-slate-50 border border-slate-250 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white cursor-pointer transition-all"
+                    >
+                      <option value="WFS">WFS (沃尔玛配送服务 - 智能计费)</option>
+                      <option value="MF">MF (卖家自配送履约)</option>
+                      <option value="DROP_SHIP">DROP_SHIP (直邮精细托管)</option>
+                      <option value="RETAIL_LINK">RETAIL_LINK (零售商直配合作)</option>
+                    </select>
+                  </div>
+                )}
+
+                {platformId !== 'amazon' && platformId !== 'walmart' && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-bold text-slate-750 pl-0.5">
+                      业务模式
+                    </label>
+                    <select
+                      value={input.businessMode || 'virtual'}
+                      onChange={(e) => {
+                        onChangeInput('businessMode', e.target.value);
+                      }}
+                      className="w-full px-4 py-3 text-sm font-bold text-slate-800 bg-slate-50 border border-slate-250 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white cursor-pointer transition-all"
+                    >
+                      <option value="virtual">虚拟仓模式 (Drop-shipping / 跨境直邮)</option>
+                      <option value="local">官方本土仓模式 (Official Warehouse / FBT托管)</option>
+                      <option value="overseas">海外仓第三方模式 (Overseas Warehouse / 3PL自发货)</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Weight and Dimensions for Amazon/Walmart */}
+                {(platformId === 'amazon' || platformId === 'walmart') && (
+                  <div className="bg-slate-50/70 rounded-2xl border border-slate-200 p-4 space-y-3">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wide block">📦 产品重量与包装尺寸</span>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-bold text-slate-650">重量 (Lbs 磅)</label>
+                        <input
+                          type="number"
+                          min="0.01"
+                          step="0.05"
+                          value={input.productWeightLbs !== undefined ? input.productWeightLbs : 0.5}
+                          onChange={(e) => onChangeInput('productWeightLbs', Math.max(0.01, parseFloat(e.target.value) || 0.5))}
+                          className="w-full px-3 py-2 bg-white border border-slate-250 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white font-mono font-extrabold text-slate-850 text-xs transition-all"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-bold text-slate-650">长度 (Inches 英寸)</label>
+                        <input
+                          type="number"
+                          min="0.1"
+                          step="0.1"
+                          value={input.dimensionLengthInches !== undefined ? input.dimensionLengthInches : 10}
+                          onChange={(e) => onChangeInput('dimensionLengthInches', Math.max(0.1, parseFloat(e.target.value) || 10))}
+                          className="w-full px-3 py-2 bg-white border border-slate-250 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white font-mono font-extrabold text-slate-850 text-xs transition-all"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-bold text-slate-650">宽度 (Inches 英寸)</label>
+                        <input
+                          type="number"
+                          min="0.1"
+                          step="0.1"
+                          value={input.dimensionWidthInches !== undefined ? input.dimensionWidthInches : 8}
+                          onChange={(e) => onChangeInput('dimensionWidthInches', Math.max(0.1, parseFloat(e.target.value) || 8))}
+                          className="w-full px-3 py-2 bg-white border border-slate-250 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white font-mono font-extrabold text-slate-850 text-xs transition-all"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="block text-[11px] font-bold text-slate-650">高度 (Inches 英寸)</label>
+                        <input
+                          type="number"
+                          min="0.1"
+                          step="0.1"
+                          value={input.dimensionHeightInches !== undefined ? input.dimensionHeightInches : 1}
+                          onChange={(e) => onChangeInput('dimensionHeightInches', Math.max(0.1, parseFloat(e.target.value) || 1))}
+                          className="w-full px-3 py-2 bg-white border border-slate-250 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white font-mono font-extrabold text-slate-850 text-xs transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    {/* FBM/MF Shipping from China Checkbox */}
+                    {((platformId === 'amazon' && ['FBM', 'SFP'].includes(input.amazonBusinessMode || 'FBA')) ||
+                      (platformId === 'walmart' && ['MF', 'DROP_SHIP'].includes(input.walmartBusinessMode || 'WFS'))) && (
+                      <div className="flex items-center space-x-2 pt-1">
+                        <input
+                          type="checkbox"
+                          id="fbmShippingFromChina"
+                          checked={input.fbmShippingFromChina || false}
+                          onChange={(e) => onChangeInput('fbmShippingFromChina', e.target.checked)}
+                          className="h-4 w-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+                        />
+                        <label htmlFor="fbmShippingFromChina" className="text-xs font-bold text-slate-700 cursor-pointer">
+                          中国直发物流 (中国自发货到目的国尾程)
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* A. Factory Cost with Currency Selector Toggle */}
                 <div className="space-y-2">
@@ -658,104 +1273,129 @@ export default function SiteSimulator({
                     <label className="block text-sm font-bold text-slate-700 pl-0.5">
                       产品采购出厂价
                     </label>
-                    <div className="flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs font-bold">
+                    <div translate="no" className="notranslate flex items-center space-x-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs font-bold">
                       <button
                         type="button"
                         onClick={() => onChangeInput('cogsCurrency', 'CNY')}
                         className={`px-2 py-1 rounded-md transition-all ${cogsCurrency === 'CNY' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-750'}`}
                       >
-                        ￥ CNY
+                        CNY
                       </button>
                       <button
                         type="button"
                         onClick={() => onChangeInput('cogsCurrency', 'USD')}
                         className={`px-2 py-1 rounded-md transition-all ${cogsCurrency === 'USD' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-750'}`}
                       >
-                        $ USD
+                        USD
                       </button>
                     </div>
                   </div>
                   
                   <div className="relative">
-                    <span className="absolute left-3.5 top-3.5 text-sm font-mono font-bold text-slate-400">
+                    <span translate="no" className="notranslate absolute left-3.5 top-3.5 text-sm font-mono font-bold text-slate-400 select-none">
                       {cogsCurrency === 'CNY' ? '￥' : '$'}
                     </span>
                     <input
+                      translate="no"
                       type="number"
                       min="0"
                       step="0.1"
                       value={input.cogs}
                       onChange={(e) => onChangeInput('cogs', Math.max(0, parseFloat(e.target.value) || 0))}
-                      className="w-full pl-8 pr-4 py-3 text-sm bg-slate-50 border border-slate-250 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white text-slate-900 font-mono font-extrabold transition-all"
+                      className="notranslate w-full pl-8 pr-4 py-3 text-sm bg-slate-50 border border-slate-250 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white text-slate-900 font-mono font-extrabold transition-all"
                     />
                   </div>
                 </div>
 
                 {/* Conditional Shipping & Warehousing parameters */}
-                {(!input.businessMode || input.businessMode === 'virtual') ? (
-                  <>
-                    {/* B. Domestic Shipping */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-bold text-slate-700 pl-0.5">
-                        国内打包运输 (￥ CNY) <span className="text-slate-400 text-xs font-medium">(可选)</span>
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        value={domesticShipping}
-                        onChange={(e) => onChangeInput('domesticShippingRMB', Math.max(0, parseFloat(e.target.value) || 0))}
-                        className="w-full px-4 py-3 text-sm bg-slate-50 border border-slate-250 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white text-slate-900 font-mono font-extrabold transition-all"
-                      />
+                {(platformId === 'amazon' || platformId === 'walmart') ? (
+                  <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-2.5">
+                    <span className="text-xs font-bold text-indigo-700 flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5" /> FBA/WFS 智能履约计费已激活
+                    </span>
+                    <div className="flex justify-between items-center text-xs font-medium text-slate-700">
+                      <span>自动匹配配送费 (FBT / Delivery):</span>
+                      <strong className="text-indigo-600 font-mono">
+                        {selectedResult.fbtFeeLocal !== undefined 
+                          ? `${selectedResult.symbol}${selectedResult.fbtFeeLocal.toFixed(2)} ${selectedResult.currency}` 
+                          : '计算中...'}
+                      </strong>
                     </div>
-
-                    {/* C. International Shipping */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-bold text-slate-700 pl-0.5">
-                        跨国干线运输 (￥ CNY) <span className="text-slate-400 text-xs font-medium">(可选)</span>
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        value={internationalShipping}
-                        onChange={(e) => onChangeInput('internationalShippingRMB', Math.max(0, parseFloat(e.target.value) || 0))}
-                        className="w-full px-4 py-3 text-sm bg-slate-50 border border-slate-250 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white text-slate-900 font-mono font-extrabold transition-all"
-                      />
+                    <div className="flex justify-between items-center text-xs font-medium text-slate-700">
+                      <span>自动计算仓储费 (Storage):</span>
+                      <strong className="text-indigo-600 font-mono">
+                        {selectedResult.storageFeeLocal !== undefined 
+                          ? `${selectedResult.symbol}${selectedResult.storageFeeLocal.toFixed(2)} ${selectedResult.currency}` 
+                          : '计算中...'}
+                      </strong>
                     </div>
-                  </>
+                  </div>
                 ) : (
-                  <>
-                    {/* B. 本土尾程派送费 */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-bold text-slate-700 pl-0.5">
-                        本土尾程派送费 ({selectedResult.symbol} {selectedResult.currency})
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        value={input.fbtFeeLocal !== undefined ? input.fbtFeeLocal : 2.50}
-                        onChange={(e) => onChangeInput('fbtFeeLocal', Math.max(0, parseFloat(e.target.value) || 0))}
-                        className="w-full px-4 py-3 text-sm bg-slate-50 border border-slate-250 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white text-slate-900 font-mono font-extrabold transition-all"
-                      />
-                    </div>
+                  (!input.businessMode || input.businessMode === 'virtual') ? (
+                    <>
+                      {/* B. Domestic Shipping */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-bold text-slate-700 pl-0.5">
+                          国内打包运输 (￥ CNY) <span className="text-slate-400 text-xs font-medium">(可选)</span>
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          value={domesticShipping}
+                          onChange={(e) => onChangeInput('domesticShippingRMB', Math.max(0, parseFloat(e.target.value) || 0))}
+                          className="w-full px-4 py-3 text-sm bg-slate-50 border border-slate-250 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white text-slate-900 font-mono font-extrabold transition-all"
+                        />
+                      </div>
 
-                    {/* C. 仓储费 */}
-                    <div className="space-y-2">
-                      <label className="block text-sm font-bold text-slate-700 pl-0.5">
-                        仓储费 ({selectedResult.symbol} {selectedResult.currency}) <span className="text-slate-400 text-xs font-medium">(件/月)</span>
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.05"
-                        value={input.storageFeeLocal !== undefined ? input.storageFeeLocal : 0.30}
-                        onChange={(e) => onChangeInput('storageFeeLocal', Math.max(0, parseFloat(e.target.value) || 0))}
-                        className="w-full px-4 py-3 text-sm bg-slate-50 border border-slate-250 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white text-slate-900 font-mono font-extrabold transition-all"
-                      />
-                    </div>
-                  </>
+                      {/* C. International Shipping */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-bold text-slate-700 pl-0.5">
+                          跨国干线运输 (￥ CNY) <span className="text-slate-400 text-xs font-medium">(可选)</span>
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.5"
+                          value={internationalShipping}
+                          onChange={(e) => onChangeInput('internationalShippingRMB', Math.max(0, parseFloat(e.target.value) || 0))}
+                          className="w-full px-4 py-3 text-sm bg-slate-50 border border-slate-250 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white text-slate-900 font-mono font-extrabold transition-all"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* B. 本土尾程派送费 */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-bold text-slate-700 pl-0.5">
+                          本土尾程派送费 ({selectedResult.symbol} {selectedResult.currency})
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.1"
+                          value={input.fbtFeeLocal !== undefined ? input.fbtFeeLocal : 2.50}
+                          onChange={(e) => onChangeInput('fbtFeeLocal', Math.max(0, parseFloat(e.target.value) || 0))}
+                          className="w-full px-4 py-3 text-sm bg-slate-50 border border-slate-250 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white text-slate-900 font-mono font-extrabold transition-all"
+                        />
+                      </div>
+
+                      {/* C. 仓储费 */}
+                      <div className="space-y-2">
+                        <label className="block text-sm font-bold text-slate-700 pl-0.5">
+                          仓储费 ({selectedResult.symbol} {selectedResult.currency}) <span className="text-slate-400 text-xs font-medium">(件/月)</span>
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.05"
+                          value={input.storageFeeLocal !== undefined ? input.storageFeeLocal : 0.30}
+                          onChange={(e) => onChangeInput('storageFeeLocal', Math.max(0, parseFloat(e.target.value) || 0))}
+                          className="w-full px-4 py-3 text-sm bg-slate-50 border border-slate-250 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white text-slate-900 font-mono font-extrabold transition-all"
+                        />
+                      </div>
+                    </>
+                  )
                 )}
 
                 {/* D. Packaging label and loss */}
@@ -775,31 +1415,48 @@ export default function SiteSimulator({
 
                 {/* E1. Affiliate Commission Rate & Return Loss Rate */}
                 <div className="grid grid-cols-2 gap-3 pb-1">
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-slate-500 leading-none">达人佣金比例 (%)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.5"
-                      value={input.affiliateCommissionRate}
-                      onChange={(e) => onChangeInput('affiliateCommissionRate', Math.max(0, parseFloat(e.target.value) || 0))}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-250 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white font-mono font-extrabold text-slate-850 text-xs transition-all"
-                    />
-                  </div>
+                  {(mode === 'reverse' || (input.platformId === 'tiktok' || input.platformId === 'shopify')) ? (
+                    <>
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-slate-500 leading-none">达人佣金比例 (%)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.5"
+                          value={input.affiliateCommissionRate}
+                          onChange={(e) => onChangeInput('affiliateCommissionRate', Math.max(0, parseFloat(e.target.value) || 0))}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-250 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white font-mono font-extrabold text-slate-850 text-xs transition-all"
+                        />
+                      </div>
 
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-slate-500 leading-none">退货退款率 (%)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.5"
-                      value={input.returnRate}
-                      onChange={(e) => onChangeInput('returnRate', Math.max(0, parseFloat(e.target.value) || 0))}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-250 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white font-mono font-extrabold text-slate-850 text-xs transition-all"
-                    />
-                  </div>
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-slate-500 leading-none">退货退款率 (%)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.5"
+                          value={input.returnRate}
+                          onChange={(e) => onChangeInput('returnRate', Math.max(0, parseFloat(e.target.value) || 0))}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-250 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white font-mono font-extrabold text-slate-850 text-xs transition-all"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="col-span-2 space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-500 leading-none">退货退款率 (%)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                        value={input.returnRate}
+                        onChange={(e) => onChangeInput('returnRate', Math.max(0, parseFloat(e.target.value) || 0))}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-250 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white font-mono font-extrabold text-slate-850 text-xs transition-all"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* E2. Ad Spend & Tax */}
@@ -2140,8 +2797,36 @@ export default function SiteSimulator({
 
               return (
                 <div className="bg-slate-900 text-slate-100 rounded-2xl p-5 space-y-4 border border-slate-800 shadow-lg">
-                  <div className="border-b border-slate-800 pb-2.5">
+                  <div className="border-b border-slate-800 pb-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <span className="text-sm font-black text-indigo-400 uppercase tracking-widest font-mono">月度经营财务账单 (RMB/￥对账)</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const headers = "项目,金额(CNY),备注\n";
+                        const rows = [
+                          ["总处理成交单量", `${monthlyReconciliationData.totalOrdersCount} 笔`, ""],
+                          ["平台后台总成交额", `￥${monthlyReconciliationData.totalRevenueCNY.toFixed(2)}`, ""],
+                          ["1. 商品总采购花费", `￥${monthlyReconciliationData.totalCogsCNY.toFixed(2)}`, "含各款已归并出厂成本"],
+                          ["2. 头程国内外打包物流", `￥${monthlyReconciliationData.totalShippingCNY.toFixed(2)}`, "含国内派送与国际干线费用"],
+                          ["3. 平台佣金与交易费", `￥${monthlyReconciliationData.totalPlatformFeesCNY.toFixed(2)}`, "平台扣点与手续费"],
+                          ["4. 流量广告及营销花费", `￥${monthlyReconciliationData.totalAdSpendCNY.toFixed(2)}`, "月度推广投流费用"],
+                          ["5. 境外退货/税款/提现公摊", `￥${(monthlyReconciliationData.totalReturnLossCNY + monthlyReconciliationData.totalTaxesCNY + monthlyReconciliationData.totalWithdrawalFeesCNY).toFixed(2)}`, "含损耗、VAT税与收款手续费"],
+                          ["期内实收净利润", `￥${monthlyReconciliationData.netProfitCNY.toFixed(2)}`, `综合实收净利率: ${monthlyReconciliationData.netMarginPercentage.toFixed(1)}%`]
+                        ].map(r => r.join(",")).join("\n");
+
+                        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), headers + rows], { type: 'text/csv;charset=utf-8;' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.setAttribute("href", url);
+                        link.setAttribute("download", `PriceSnap_月度对账财务汇总账单_${monthlyReconciliationData.totalOrdersCount}单.csv`);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                      className="px-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-bold transition duration-150 flex items-center gap-1 shadow-sm self-start sm:self-auto"
+                    >
+                      <Download className="h-3 w-3" /> 导出汇总对账 (CSV)
+                    </button>
                   </div>
 
                   <div className="space-y-3.5 text-sm">
@@ -2200,15 +2885,15 @@ export default function SiteSimulator({
                 </div>
               );
             })()}
-            </div>
           </div>
-
         </div>
+
+      </div>
 
       {/* Global 4-Country Profit Comparison Charts */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         
-        {/* Card A: 4国 TikTok Shop 大盘利润率对比 (%) */}
+        {/* Card A: 4国 TikTok Shop 大盘利润树占比与利润率对比 (%) */}
         <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm space-y-5">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div className="flex items-center space-x-2">
@@ -2313,7 +2998,7 @@ export default function SiteSimulator({
               <span>全链路企业运营利润精算与精准定价器</span>
             </h2>
             <p className="text-xs text-slate-500">
-              输入员工、场地房租、ERP及系统网络等固定成本，系统将按月单量自动公摊，诊断您的商品零售价是否能满足企业的真实净利率需求。
+              根据您的以往月度订单总数，自动识别国家、品类等各项费用扣点与物流，算出扣减后的银行到账金额。结合日常薪资水电ERP等固支，给出终极利润净值与科学建议零售定价。
             </p>
           </div>
           <span className="self-start md:self-center px-3 py-1 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-black uppercase font-mono tracking-wider">
@@ -2337,6 +3022,82 @@ export default function SiteSimulator({
                   onChange={(e) => setHistoricalMonthlyOrders(e.target.value)}
                   className="w-full px-3.5 py-2.5 text-xs bg-slate-50 border border-slate-250 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white text-slate-900 font-mono font-bold transition-all"
                 />
+              </div>
+
+              {/* SKU-specific filtering and overrides */}
+              <div className="bg-slate-50/55 p-3 rounded-xl border border-slate-200/80 space-y-3.5">
+                <div className="flex items-center space-x-1.5 border-b border-indigo-100 pb-1.5">
+                  <span className="text-xs">🎯</span>
+                  <span className="text-[11px] font-black text-indigo-700 uppercase tracking-wider">识别特定出单商品 / SKU 属性 (可选)</span>
+                </div>
+                
+                <div className="space-y-1">
+                  <label className="block text-[10px] font-bold text-slate-600 flex items-center justify-between">
+                    <span>商品名称 / SKU 标记</span>
+                    <span className="text-[9px] text-slate-400 font-normal font-sans">默认为当前估算单品</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="例: 爆款防寒童装、SKU-A"
+                    value={evalSKUName}
+                    onChange={(e) => setEvalSKUName(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-white border border-slate-250 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 font-medium transition-all placeholder:text-slate-400"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-slate-600">
+                      该 SKU 采购单价 (￥)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder={`继承 (￥${cogsRMB.toFixed(2)})`}
+                      value={customSKUCogsRMB}
+                      onChange={(e) => setCustomSKUCogsRMB(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-250 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 font-mono font-bold transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-bold text-slate-600">
+                      该 SKU 物流单价 (￥)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder={`继承 (￥${defaultUnitLogisticsCNY.toFixed(2)})`}
+                      value={customSKULogisticsRMB}
+                      onChange={(e) => setCustomSKULogisticsRMB(e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-white border border-slate-250 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 font-mono font-bold transition-all placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Dynamic Monthly Goods & Logistics Cost indicators under Orders Count */}
+              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50/70 rounded-xl border border-slate-200">
+                <div className="space-y-0.5">
+                  <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider">该 SKU 月度货款总额</span>
+                  <div className="text-xs font-extrabold text-slate-800 font-mono">
+                    ￥{((parseFloat(historicalMonthlyOrders) || 0) * activeSKUCogsRMB).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-[10px] text-slate-400 font-normal">CNY</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 block font-medium">
+                    (单件货款: ￥{activeSKUCogsRMB.toFixed(2)})
+                  </span>
+                </div>
+                <div className="space-y-0.5 border-l border-slate-200 pl-3">
+                  <span className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider">该 SKU 月度物流总额</span>
+                  <div className="text-xs font-extrabold text-indigo-600 font-mono">
+                    ￥{((parseFloat(historicalMonthlyOrders) || 0) * activeSKULogisticsRMB).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-[10px] text-slate-400 font-normal">CNY</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 block font-medium">
+                    (单件物流: ￥{activeSKULogisticsRMB.toFixed(2)})
+                  </span>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -2406,12 +3167,12 @@ export default function SiteSimulator({
 
               if (!hasInput) {
                 return (
-                  <div className="h-full min-h-[220px] bg-slate-100/60 rounded-2xl border border-dashed border-slate-300 flex flex-col items-center justify-center p-6 text-center space-y-3">
+                  <div className="h-full min-h-[350px] bg-slate-100/60 rounded-2xl border border-dashed border-slate-300 flex flex-col items-center justify-center p-6 text-center space-y-3">
                     <div className="text-4xl">🏢</div>
                     <div>
                       <p className="font-bold text-slate-700 text-sm">企业经营评估功能未激活</p>
-                      <p className="text-xs text-slate-450 max-w-sm mt-1 leading-relaxed">
-                        在左侧面板中输入您的<strong>月度总订单数</strong>，系统即可解锁全链路固定成本分摊，分析出满足您企业净利润目标的最精确零售价！
+                      <p className="text-xs text-slate-455 max-w-sm mt-1 leading-relaxed">
+                        在左侧面板中输入您的<strong>以往月度订单总数</strong>，系统即可解锁全链路扣点识别与固定成本分摊，分析出满足您企业净利润目标的最精确零售价！
                       </p>
                     </div>
                   </div>
@@ -2423,13 +3184,52 @@ export default function SiteSimulator({
               const fixedCostPerOrderRMB = totalMonthlyFixedCostRMB / ordersNum;
               const fixedCostPerOrderLocal = fixedCostPerOrderRMB / selectedResult.exchangeRateToCNY;
 
-              // Core operational diagnostics
+              const unitForwardLogisticsCNY = (selectedResult.forwardLogistics || 0) * selectedResult.exchangeRateToCNY;
+              const unitFbtFeeCNY = (selectedResult.fbtFeeLocal || 0) * selectedResult.exchangeRateToCNY;
+              const unitStorageFeeCNY = (selectedResult.storageFeeLocal || 0) * selectedResult.exchangeRateToCNY;
+              const unitReturnLossCNY = (selectedResult.returnLoss || 0) * selectedResult.exchangeRateToCNY;
+              const originalUnitTotalLogisticsCNY = unitForwardLogisticsCNY + unitFbtFeeCNY + unitStorageFeeCNY + unitReturnLossCNY;
+
+              // Convert active costs for this SKU to local currency
+              const activeCogsLocal = activeSKUCogsRMB / selectedResult.exchangeRateToCNY;
+              const activeLogisticsLocal = activeSKULogisticsRMB / selectedResult.exchangeRateToCNY;
+              const originalCogsLocal = cogsRMB / selectedResult.exchangeRateToCNY;
+              const originalLogisticsLocal = originalUnitTotalLogisticsCNY / selectedResult.exchangeRateToCNY;
+
+              // Core operational diagnostics with customized SKU costs
               const currentPrice = selectedResult.suggestedPriceLocal;
-              const itemNetProfitLocal = selectedResult.netProfit;
-              const enterpriseNetProfitLocal = itemNetProfitLocal - fixedCostPerOrderLocal;
+              
+              // Adjusted unit net profit local
+              const adjustedItemNetProfitLocal = selectedResult.netProfit + (originalCogsLocal - activeCogsLocal) + (originalLogisticsLocal - activeLogisticsLocal);
+              const enterpriseNetProfitLocal = adjustedItemNetProfitLocal - fixedCostPerOrderLocal;
               const enterpriseNetMargin = currentPrice > 0 ? (enterpriseNetProfitLocal / currentPrice) * 100 : 0;
 
-              // Solve for Precision Pricing
+              // 1. Goods and Logistics costs in CNY
+              const monthlyGoodsTotalRMB = ordersNum * activeSKUCogsRMB;
+              const monthlyLogisticsTotalRMB = ordersNum * activeSKULogisticsRMB;
+
+              // 2. Platform automatic deductions
+              const platformDeductionsLocal = 
+                (selectedResult.commissionFee || 0) + 
+                (selectedResult.transactionFee || 0) + 
+                (selectedResult.creatorCommission || 0) + 
+                (selectedResult.taxes || 0);
+
+              const payoutDeductionsLocal = 
+                (selectedResult.withdrawalFee || 0) + 
+                (selectedResult.exchangeLossBuffer || 0);
+
+              const platformLogisticsLocal = 
+                (selectedResult.fbtFeeLocal || 0) + 
+                (selectedResult.storageFeeLocal || 0);
+
+              // 3. Clean received payout (去除这些费用后的应收到账金额)
+              // This is the amount actually paid out by the platform and credited to the merchant bank account, per unit
+              const unitReceivedLocal = selectedResult.suggestedPriceLocal - platformDeductionsLocal - platformLogisticsLocal - payoutDeductionsLocal;
+              const unitReceivedRMB = unitReceivedLocal * selectedResult.exchangeRateToCNY;
+              const monthlyReceivedTotalRMB = ordersNum * unitReceivedRMB;
+
+              // 4. Solve for Precision Pricing
               const precisionTargetPrice = (() => {
                 let low = selectedResult.suggestedPriceLocal;
                 let high = selectedResult.suggestedPriceLocal * 3 + fixedCostPerOrderLocal * 4 + 100;
@@ -2441,7 +3241,24 @@ export default function SiteSimulator({
                   const baseInput = { ...input, priceLocal: mid };
                   const simulated = calculateMultiSiteSimulation(baseInput, exchangeRateUSDToCNY, exchangeRates);
                   const r = simulated.find(x => x.siteId === selectedSiteId) || selectedResult;
-                  const trialMargin = mid > 0 ? (r.netProfit - fixedCostPerOrderLocal) / mid : -1;
+                  
+                  // Compute r's original costs
+                  const rCogsLocal = cogsRMB / r.exchangeRateToCNY;
+                  const rForwardLogisticsCNY = (r.forwardLogistics || 0) * r.exchangeRateToCNY;
+                  const rFbtFeeCNY = (r.fbtFeeLocal || 0) * r.exchangeRateToCNY;
+                  const rStorageFeeCNY = (r.storageFeeLocal || 0) * r.exchangeRateToCNY;
+                  const rReturnLossCNY = (r.returnLoss || 0) * r.exchangeRateToCNY;
+                  const rTotalLogisticsCNY = rForwardLogisticsCNY + rFbtFeeCNY + rStorageFeeCNY + rReturnLossCNY;
+                  const rLogisticsLocal = rTotalLogisticsCNY / r.exchangeRateToCNY;
+
+                  // Compute overridden costs for r
+                  const activeRCogsLocal = activeSKUCogsRMB / r.exchangeRateToCNY;
+                  const activeRLogisticsLocal = activeSKULogisticsRMB / r.exchangeRateToCNY;
+
+                  // Compute adjusted net profit for r
+                  const adjustedRNetProfitLocal = r.netProfit + (rCogsLocal - activeRCogsLocal) + (rLogisticsLocal - activeRLogisticsLocal);
+
+                  const trialMargin = mid > 0 ? (adjustedRNetProfitLocal - fixedCostPerOrderLocal) / mid : -1;
                   
                   if (trialMargin < targetMarginRate) {
                     low = mid;
@@ -2456,70 +3273,256 @@ export default function SiteSimulator({
               // Is current pricing satisfying the target profit margin under fixed cost?
               const isProfitSatisfied = enterpriseNetMargin >= (input.targetProfitMarginRate || 20);
 
+              // Let's identify the Category and Country Names
+              const friendlyCategoryNames: Record<string, string> = {
+                fashion: "服装、鞋包及配饰",
+                cosmetics: "美妆个护与美发",
+                electronics: "手机数码办公",
+                electronics_device: "智能数码设备",
+                electronics_accessories: "数码电子配件",
+                home: "家居厨房生活",
+                sports: "运动户外车配",
+                toys: "玩具收藏动漫",
+                collectibles: "手办文具收藏",
+                jewelry: "轻奢高雅珠宝",
+                books: "学术印刷书籍",
+                grocery: "食品杂货饮料",
+              };
+              const activeCategoryName = friendlyCategoryNames[input.category] || "普通商品大类";
+
+              // 5. Enterprise final profit (公司最终实际纯利润)
+              const finalCompanyProfitRMB = (adjustedItemNetProfitLocal * selectedResult.exchangeRateToCNY) * ordersNum - totalMonthlyFixedCostRMB;
+
               return (
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-5 flex-1 flex flex-col justify-between shadow-xs">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-                      <span className="text-xs font-black text-slate-500 uppercase tracking-widest">企业级财务成本均摊诊断评估</span>
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${isProfitSatisfied ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200 animate-pulse'}`}>
-                        {isProfitSatisfied ? '✓ 满足利润目标' : '⚠️ 定价偏低无法覆盖固收'}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <div>
-                        <span className="block text-[10px] text-slate-450 font-bold uppercase tracking-wider">月总固定成本</span>
-                        <div className="text-sm font-black text-slate-800 font-mono mt-0.5">
-                          ￥{totalMonthlyFixedCostRMB.toLocaleString(undefined, { maximumFractionDigits: 1 })} <span className="text-xs text-slate-400 font-normal">CNY</span>
+                <div className="space-y-6 flex flex-col h-full">
+                  {/* Card 1: 企业全链路利润精算报告 */}
+                  <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-6 flex-1 flex flex-col justify-between shadow-sm">
+                    <div className="space-y-5">
+                      {/* Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xl">📊</span>
+                          <span className="text-xs font-black text-slate-700 uppercase tracking-widest">企业全链路利润精算报告</span>
+                        </div>
+                        <div className="flex items-center space-x-2 self-start sm:self-auto">
+                          <button
+                            type="button"
+                            onClick={downloadEnterprisePricingReport}
+                            className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-bold transition duration-150 flex items-center gap-1 shadow-sm active:scale-95"
+                          >
+                            <Download className="h-3 w-3" /> 下载对比报告 (含图表)
+                          </button>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${isProfitSatisfied ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200 animate-pulse'}`}>
+                            {isProfitSatisfied ? '✓ 达标' : '⚠️ 固收不足'}
+                          </span>
                         </div>
                       </div>
 
-                      <div>
-                        <span className="block text-[10px] text-slate-450 font-bold uppercase tracking-wider">每单公摊固定成本</span>
-                        <div className="text-base font-black text-indigo-600 font-mono mt-0.5">
-                          ￥{fixedCostPerOrderRMB.toFixed(2)} <span className="text-xs text-slate-400 font-normal">CNY</span>
+                      {/* Meta section */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs">
+                        <div>
+                          <span className="text-slate-400 block font-semibold text-[10px] uppercase">评估单品 / SKU</span>
+                          <span className="font-extrabold text-slate-800 mt-0.5 block truncate" title={evalSKUName || "当前核算单品"}>
+                            {evalSKUName || "当前核算单品"}
+                          </span>
                         </div>
-                        <span className="text-[10px] text-slate-400 font-mono block">
-                          ≈ {selectedResult.symbol}{fixedCostPerOrderLocal.toFixed(2)} {selectedResult.currency}
-                        </span>
+                        <div>
+                          <span className="text-slate-400 block font-semibold text-[10px] uppercase">识别站点国家</span>
+                          <span className="font-extrabold text-slate-800 flex items-center gap-1 mt-0.5">
+                            <span>{siteFlagMap[selectedResult.siteId] || '🌐'}</span>
+                            <span>{selectedResult.siteName} ({selectedResult.siteId})</span>
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block font-semibold text-[10px] uppercase">品类归属</span>
+                          <span className="font-extrabold text-indigo-700 mt-0.5 block truncate">
+                            {activeCategoryName}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-slate-400 block font-semibold text-[10px] uppercase">当前核算汇率</span>
+                          <span className="font-extrabold text-slate-800 font-mono mt-0.5 block">
+                            1 {selectedResult.currency} = {selectedResult.exchangeRateToCNY.toFixed(4)} CNY
+                          </span>
+                        </div>
                       </div>
 
-                      <div>
-                        <span className="block text-[10px] text-slate-450 font-bold uppercase tracking-wider">公摊后企业真实净利率</span>
-                        <div className={`text-base font-black font-mono mt-0.5 ${enterpriseNetMargin >= 15 ? 'text-emerald-600' : enterpriseNetMargin >= 0 ? 'text-yellow-600' : 'text-rose-600'}`}>
-                          {enterpriseNetMargin.toFixed(1)}%
+                      {/* Deductions Breakdown */}
+                      <div className="space-y-2">
+                        <span className="block text-[10px] text-slate-455 font-black uppercase tracking-wider">系统自动识别各项费用扣点与损耗明细 (每单)</span>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px] font-medium text-slate-650">
+                          <div className="bg-slate-50/50 p-2 rounded-lg border border-slate-100 flex justify-between items-center">
+                            <span>平台扣点佣金:</span>
+                            <strong className="font-mono text-slate-800">
+                              {((selectedResult.commissionFee / (selectedResult.suggestedPriceLocal || 1)) * 100).toFixed(1)}%
+                            </strong>
+                          </div>
+                          <div className="bg-slate-50/50 p-2 rounded-lg border border-slate-100 flex justify-between items-center">
+                            <span>支付交易手续费:</span>
+                            <strong className="font-mono text-slate-800">
+                              {((selectedResult.transactionFee / (selectedResult.suggestedPriceLocal || 1)) * 100).toFixed(1)}%
+                            </strong>
+                          </div>
+                          <div className="bg-slate-50/50 p-2 rounded-lg border border-slate-100 flex justify-between items-center">
+                            <span>达人抽成比例:</span>
+                            <strong className="font-mono text-slate-800">
+                              {(input.affiliateCommissionRate || 0).toFixed(1)}%
+                            </strong>
+                          </div>
+                          <div className="bg-slate-50/50 p-2 rounded-lg border border-slate-100 flex justify-between items-center">
+                            <span>官方配送费:</span>
+                            <strong className="font-mono text-slate-800">
+                              {selectedResult.symbol}{(selectedResult.fbtFeeLocal || 0).toFixed(2)}
+                            </strong>
+                          </div>
+                          <div className="bg-slate-50/50 p-2 rounded-lg border border-slate-100 flex justify-between items-center">
+                            <span>仓储及代收税额:</span>
+                            <strong className="font-mono text-slate-800">
+                              {selectedResult.symbol}{((selectedResult.storageFeeLocal || 0) + (selectedResult.taxes || 0)).toFixed(2)}
+                            </strong>
+                          </div>
+                          <div className="bg-slate-50/50 p-2 rounded-lg border border-slate-100 flex justify-between items-center">
+                            <span>提现与汇率差:</span>
+                            <strong className="font-mono text-slate-800">
+                              {(payoutDeductionsLocal / (selectedResult.suggestedPriceLocal || 1) * 100).toFixed(2)}%
+                            </strong>
+                          </div>
                         </div>
-                        <span className="text-[10px] text-slate-450 font-medium block leading-tight mt-0.5">
-                          (公摊前为: {selectedResult.netMargin.toFixed(1)}%)
-                        </span>
                       </div>
-                    </div>
 
-                    <div className="space-y-2">
-                      <h4 className="text-xs font-extrabold text-slate-800 flex items-center gap-1">
-                        <span>🎯 满足期望净利润率 ({(input.targetProfitMarginRate || 20)}%) 的精准建议定价:</span>
-                      </h4>
-                      <div className="flex flex-col md:flex-row items-baseline gap-4">
-                        <div className="text-2xl font-black text-indigo-700 font-mono">
-                          {selectedResult.symbol}{precisionTargetPrice.toFixed(2)} <span className="text-xs text-slate-400 font-sans font-normal">({selectedResult.currency})</span>
+                      {/* Net Received Payout (应收到账金额) */}
+                      <div className="p-4 bg-gradient-to-r from-emerald-500/10 to-indigo-500/10 border border-emerald-500/20 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                          <span className="text-[10px] text-emerald-700 font-extrabold uppercase tracking-wider block">去除扣点扣费后的银行【结汇应收到账金额】</span>
+                          <p className="text-slate-500 text-[11px] font-semibold mt-0.5">
+                            （平台扣减抽成与尾程，并经结汇提现后，实际汇入国内银行卡金额）
+                          </p>
                         </div>
-                        <div className="text-xs text-slate-500 font-semibold leading-normal">
-                          等同于：<span className="text-slate-800 font-bold">￥{(precisionTargetPrice * selectedResult.exchangeRateToCNY).toFixed(1)} CNY</span>。此价格已将每单分摊的员工/房租/ERP成本 ({selectedResult.symbol}{fixedCostPerOrderLocal.toFixed(2)}) 完全吸纳。
+                        <div className="text-right">
+                          <span className="block text-xl font-black font-mono text-emerald-600">
+                            ￥{monthlyReceivedTotalRMB.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} CNY <span className="text-xs font-normal text-slate-400">/月</span>
+                          </span>
+                          <span className="text-[10px] text-slate-400 block font-mono">
+                            单件到账: ￥{unitReceivedRMB.toFixed(2)} CNY (≈ {selectedResult.symbol}{unitReceivedLocal.toFixed(2)} {selectedResult.currency})
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Enterprise Balance Sheet Ledger */}
+                      <div className="bg-slate-50 rounded-2xl border border-slate-200 p-4 space-y-2 text-xs">
+                        <span className="block text-[10px] text-slate-450 font-black uppercase tracking-wider">月度企业最终实际纯利润精算</span>
+                        
+                        <div className="flex justify-between border-b border-slate-200/60 pb-1">
+                          <span className="text-slate-500 font-medium">1. 预计月度结汇应收到账 (RMB)</span>
+                          <span className="font-mono font-bold text-slate-800">
+                            ￥{monthlyReceivedTotalRMB.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between border-b border-slate-200/60 pb-1">
+                          <span className="text-slate-500 font-medium">2. 减：商品采购成本 (RMB)</span>
+                          <span className="font-mono font-bold text-rose-600">
+                            - ￥{monthlyGoodsTotalRMB.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between border-b border-slate-200/60 pb-1">
+                          <span className="text-slate-500 font-medium">3. 减：干线与尾程物流总成本 (RMB)</span>
+                          <span className="font-mono font-bold text-rose-600">
+                            - ￥{monthlyLogisticsTotalRMB.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+
+                        <div className="flex justify-between border-b border-slate-200/60 pb-1">
+                          <span className="text-slate-500 font-medium">4. 减：月度企业运营固收 (薪资/租金/ERP等)</span>
+                          <span className="font-mono font-bold text-rose-600">
+                            - ￥{totalMonthlyFixedCostRMB.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+
+                        <div className="bg-white p-3 rounded-xl border border-slate-150 space-y-1 mt-2 shadow-inner">
+                          <div className="flex justify-between items-baseline">
+                            <span className="text-indigo-600 font-black text-xs uppercase">月度企业最终实际纯利润</span>
+                            <div className={`text-base font-black font-mono ${finalCompanyProfitRMB >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                              ￥{finalCompanyProfitRMB.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                          </div>
+                          <div className="flex justify-between items-center border-t border-slate-100 pt-1 text-[10px]">
+                            <span className="text-slate-400 font-bold">综合企业净利率：</span>
+                            <span className={`font-mono font-extrabold text-xs ${enterpriseNetMargin >= (input.targetProfitMarginRate || 20) ? 'text-emerald-600' : 'text-rose-600'}`}>
+                              {enterpriseNetMargin.toFixed(1)}%
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs leading-relaxed text-slate-600 font-medium">
-                    {isProfitSatisfied ? (
-                      <p>
-                        ✨ <strong>评估结论:</strong> 您当前的商品零售定价（{selectedResult.symbol}{currentPrice.toFixed(2)}）在扣减所有平台扣点、运费及<strong>每单固支均摊（￥{fixedCostPerOrderRMB.toFixed(2)}）</strong>后，仍能为您保留 <strong>{enterpriseNetMargin.toFixed(1)}%</strong> 的企业级纯利润，完全达到了您设定的 <strong>{input.targetProfitMarginRate || 20}%</strong> 目标！财务状况极佳！
-                      </p>
-                    ) : (
-                      <p>
-                        ⚠️ <strong>经营性财务预警:</strong> 尽管该商品单笔测算利润率不错，但在加入月度企业固定支出（薪资、房租、ERP系统费等）均摊后，每单被抽走 <strong>￥{fixedCostPerOrderRMB.toFixed(2)}</strong>。导致真实净利率骤降至 <strong>{enterpriseNetMargin.toFixed(1)}%</strong>，无法实现 <strong>{input.targetProfitMarginRate || 20}%</strong> 的预期。<strong>建议您将该站点开卖价格微调至 {selectedResult.symbol}{precisionTargetPrice.toFixed(2)} 以上！</strong>
-                      </p>
-                    )}
+                  {/* Card 2: 企业级财务成本均摊诊断评估 */}
+                  <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-5 flex-1 flex flex-col justify-between shadow-xs">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                        <span className="text-xs font-black text-slate-500 uppercase tracking-widest">企业级财务成本均摊诊断评估</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${isProfitSatisfied ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200 animate-pulse'}`}>
+                          {isProfitSatisfied ? '✓ 满足利润目标' : '⚠️ 定价偏低无法覆盖固收'}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <div>
+                          <span className="block text-[10px] text-slate-450 font-bold uppercase tracking-wider">月总固定成本</span>
+                          <div className="text-sm font-black text-slate-800 font-mono mt-0.5">
+                            ￥{totalMonthlyFixedCostRMB.toLocaleString(undefined, { maximumFractionDigits: 1 })} <span className="text-xs text-slate-400 font-normal">CNY</span>
+                          </div>
+                        </div>
+
+                        <div>
+                          <span className="block text-[10px] text-slate-450 font-bold uppercase tracking-wider">每单公摊固定成本</span>
+                          <div className="text-base font-black text-indigo-600 font-mono mt-0.5">
+                            ￥{fixedCostPerOrderRMB.toFixed(2)} <span className="text-xs text-slate-400 font-normal">CNY</span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-mono block">
+                            ≈ {selectedResult.symbol}{fixedCostPerOrderLocal.toFixed(2)} {selectedResult.currency}
+                          </span>
+                        </div>
+
+                        <div>
+                          <span className="block text-[10px] text-slate-450 font-bold uppercase tracking-wider">公摊后企业真实净利率</span>
+                          <div className={`text-base font-black font-mono mt-0.5 ${enterpriseNetMargin >= 15 ? 'text-emerald-600' : enterpriseNetMargin >= 0 ? 'text-yellow-600' : 'text-rose-600'}`}>
+                            {enterpriseNetMargin.toFixed(1)}%
+                          </div>
+                          <span className="text-[10px] text-slate-450 font-medium block leading-tight mt-0.5">
+                            (公摊前为: {selectedResult.netMargin.toFixed(1)}%)
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-extrabold text-slate-800 flex items-center gap-1">
+                          <span>🎯 满足期望净利润率 ({(input.targetProfitMarginRate || 20)}%) 的精准建议定价:</span>
+                        </h4>
+                        <div className="flex flex-col md:flex-row items-baseline gap-4">
+                          <div className="text-2xl font-black text-indigo-700 font-mono">
+                            {selectedResult.symbol}{precisionTargetPrice.toFixed(2)} <span className="text-xs text-slate-400 font-sans font-normal">({selectedResult.currency})</span>
+                          </div>
+                          <div className="text-xs text-slate-500 font-semibold leading-normal">
+                            等同于：<span className="text-slate-800 font-bold">￥{(precisionTargetPrice * selectedResult.exchangeRateToCNY).toFixed(1)} CNY</span>。此价格已将每单分摊的员工/房租/ERP成本 ({selectedResult.symbol}{fixedCostPerOrderLocal.toFixed(2)}) 完全吸纳。
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs leading-relaxed text-slate-600 font-medium">
+                      {isProfitSatisfied ? (
+                        <p>
+                          ✨ <strong>评估结论:</strong> 您当前的商品零售定价（{selectedResult.symbol}{currentPrice.toFixed(2)}）在扣减所有平台扣点、运费及<strong>每单固支均摊（￥{fixedCostPerOrderRMB.toFixed(2)}）</strong>后，仍能为您保留 <strong>{enterpriseNetMargin.toFixed(1)}%</strong> 的企业级纯利润，完全达到了您设定的 <strong>{input.targetProfitMarginRate || 20}%</strong> 目标！财务状况极佳！
+                        </p>
+                      ) : (
+                        <p>
+                          ⚠️ <strong>经营性财务预警:</strong> 尽管该商品单笔测算利润率不错，但在加入月度企业固定支出（薪资、房租、ERP系统费等）均摊后，每单被抽走 <strong>￥{fixedCostPerOrderRMB.toFixed(2)}</strong>。导致真实净利率骤降至 <strong>{enterpriseNetMargin.toFixed(1)}%</strong>，无法实现 <strong>{input.targetProfitMarginRate || 20}%</strong> 的预期。<strong>建议您将该站点开卖价格微调至 {selectedResult.symbol}{precisionTargetPrice.toFixed(2)} 以上！</strong>
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -2527,7 +3530,6 @@ export default function SiteSimulator({
           </div>
         </div>
       </div>
-
     </div>
   );
 }

@@ -37,6 +37,15 @@ export interface SimulationInput {
   cogsCurrency?: 'CNY' | 'USD'; // COGS input currency selection
   packagingLossRMB?: number; // Packaging labeling & loss in RMB
   
+  // Amazon / Walmart Business Mode and Dimensions
+  amazonBusinessMode?: 'FBA' | 'FBM' | 'SFP' | 'AWD';
+  walmartBusinessMode?: 'WFS' | 'MF' | 'DROP_SHIP' | 'RETAIL_LINK';
+  productWeightLbs?: number; // Weight in lbs
+  dimensionLengthInches?: number; // length in inches
+  dimensionWidthInches?: number; // width in inches
+  dimensionHeightInches?: number; // height in inches
+  fbmShippingFromChina?: boolean; // whether shipping from China or domestic US (for FBM shipping estimation)
+  
   // New double-mode pricing configuration
   pricingMode?: 'forward' | 'reverse'; // 'forward' = evaluation, 'reverse' = pricing recommended
   targetProfitMarginRate?: number; // target net profit margin percentage e.g. 20 for 20%
@@ -124,6 +133,8 @@ export interface MultiSiteResult {
   adSpend: number;
   generalOperationalExpenses: number;
   taxes: number;
+  storageFeeLocal?: number;
+  fbtFeeLocal?: number;
   
   // Gross profits (毛利)
   grossProfit: number;

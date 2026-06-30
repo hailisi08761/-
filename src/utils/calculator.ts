@@ -1,5 +1,14 @@
 import { SimulationInput, SiteFeeConfig, MultiSiteResult, PayoutTool } from '../types';
-import { SITE_FEE_CONFIGS, PAYOUT_TOOLS_CONFIG, SITE_CATEGORIES, SiteCategory } from '../data/feeStructures';
+import { 
+  SITE_FEE_CONFIGS, 
+  PAYOUT_TOOLS_CONFIG, 
+  SITE_CATEGORIES, 
+  SiteCategory,
+  AMAZON_REFERRAL_FEES,
+  AMAZON_MIN_FEE_RULES,
+  WALMART_REFERRAL_FEES,
+  WALMART_MIN_FEE
+} from '../data/feeStructures';
 
 /**
  * Automatically determine the tax rate of a country based on product keywords.
@@ -226,6 +235,140 @@ export function getIntelligentTaxAnalysis(productName: string, categoryId: strin
   };
 }
 
+const FBA_TIERS: Record<string, { maxWeightLbs: number; fee: number }[]> = {
+  smallStandard: [
+    { maxWeightLbs: 1/16, fee: 2.45 },
+    { maxWeightLbs: 2/16, fee: 2.51 },
+    { maxWeightLbs: 4/16, fee: 2.56 },
+    { maxWeightLbs: 8/16, fee: 2.70 },
+    { maxWeightLbs: 16/16, fee: 3.22 },
+    { maxWeightLbs: 32/16, fee: 3.50 },
+    { maxWeightLbs: 48/16, fee: 3.73 },
+  ],
+  largeStandard: [
+    { maxWeightLbs: 1.0, fee: 3.50 },
+    { maxWeightLbs: 2.0, fee: 4.00 },
+    { maxWeightLbs: 3.0, fee: 4.50 },
+    { maxWeightLbs: 4.0, fee: 5.00 },
+    { maxWeightLbs: 5.0, fee: 5.50 },
+    { maxWeightLbs: 6.0, fee: 6.00 },
+    { maxWeightLbs: 7.0, fee: 6.50 },
+    { maxWeightLbs: 8.0, fee: 7.00 },
+    { maxWeightLbs: 9.0, fee: 7.50 },
+    { maxWeightLbs: 10.0, fee: 8.00 },
+    { maxWeightLbs: 11.0, fee: 8.50 },
+    { maxWeightLbs: 12.0, fee: 8.90 },
+    { maxWeightLbs: 13.0, fee: 9.40 },
+    { maxWeightLbs: 14.0, fee: 9.90 },
+    { maxWeightLbs: 15.0, fee: 10.40 },
+    { maxWeightLbs: 16.0, fee: 10.90 },
+    { maxWeightLbs: 17.0, fee: 11.40 },
+    { maxWeightLbs: 18.0, fee: 11.90 },
+    { maxWeightLbs: 19.0, fee: 12.40 },
+    { maxWeightLbs: 20.0, fee: 12.90 },
+  ],
+  smallOversize: [
+    { maxWeightLbs: 1.0, fee: 8.26 },
+    { maxWeightLbs: 2.0, fee: 8.76 },
+    { maxWeightLbs: 5.0, fee: 10.26 },
+    { maxWeightLbs: 10.0, fee: 12.76 },
+    { maxWeightLbs: 20.0, fee: 17.76 },
+    { maxWeightLbs: 30.0, fee: 22.26 },
+    { maxWeightLbs: 50.0, fee: 31.26 },
+    { maxWeightLbs: 70.0, fee: 40.26 },
+    { maxWeightLbs: 100.0, fee: 53.76 },
+  ],
+  mediumOversize: [
+    { maxWeightLbs: 30.0, fee: 22.26 },
+    { maxWeightLbs: 50.0, fee: 31.26 },
+    { maxWeightLbs: 70.0, fee: 40.26 },
+    { maxWeightLbs: 100.0, fee: 53.76 },
+    { maxWeightLbs: 150.0, fee: 76.26 },
+  ],
+  largeOversize: [
+    { maxWeightLbs: 50.0, fee: 75.76 },
+    { maxWeightLbs: 70.0, fee: 82.76 },
+    { maxWeightLbs: 100.0, fee: 93.26 },
+    { maxWeightLbs: 150.0, fee: 110.76 },
+  ],
+};
+
+export function getFBAFee(weightLbs: number, dimensions: { length?: number; width?: number; height?: number } | undefined): number {
+  const length = dimensions?.length || 0;
+  const width = dimensions?.width || 0;
+  const height = dimensions?.height || 0;
+  const maxDim = Math.max(length, width, height);
+  const midDim = [length, width, height].sort((a, b) => b - a)[1] || 0;
+  const minDim = Math.min(length, width, height);
+
+  let sizeType: string;
+  if (maxDim <= 15 && midDim <= 12 && minDim <= 0.75) {
+    sizeType = 'smallStandard';
+  } else if (maxDim <= 18 && midDim <= 14 && minDim <= 8) {
+    sizeType = 'largeStandard';
+  } else if (maxDim <= 60) {
+    sizeType = 'smallOversize';
+  } else if (maxDim <= 108) {
+    sizeType = 'mediumOversize';
+  } else {
+    sizeType = 'largeOversize';
+  }
+
+  const tiers = FBA_TIERS[sizeType];
+  for (const tier of tiers) {
+    if (weightLbs <= tier.maxWeightLbs) {
+      return tier.fee;
+    }
+  }
+  return tiers[tiers.length - 1].fee;
+}
+
+export function calculateFBAStorageFee(dimensions: { length?: number; width?: number; height?: number } | undefined, isPeak: boolean = false): number {
+  const length = dimensions?.length || 0;
+  const width = dimensions?.width || 0;
+  const height = dimensions?.height || 0;
+  const volumeCubicFeet = (length * width * height) / 1728;
+
+  const maxDim = Math.max(length, width, height);
+  const midDim = [length, width, height].sort((a, b) => b - a)[1] || 0;
+  const minDim = Math.min(length, width, height);
+  const isLarge = maxDim > 18 || midDim > 14 || minDim > 8;
+
+  if (isPeak) {
+    return volumeCubicFeet * (isLarge ? 1.40 : 2.40);
+  } else {
+    return volumeCubicFeet * (isLarge ? 0.56 : 0.78);
+  }
+}
+
+export function getWFSFee(weightLbs: number): number {
+  if (weightLbs <= 0.5) return 3.30;
+  if (weightLbs <= 1.0) return 3.90;
+  if (weightLbs <= 2.0) return 4.60;
+  if (weightLbs <= 5.0) return 5.80;
+  if (weightLbs <= 10.0) return 8.20;
+  if (weightLbs <= 20.0) return 12.00;
+  if (weightLbs <= 30.0) return 16.00;
+  const excess = Math.max(0, Math.ceil(weightLbs - 30.0));
+  return 16.00 + excess * 0.60;
+}
+
+export function estimateFBMShipping(weightLbs: number, fromChina: boolean = false): number {
+  if (fromChina) {
+    if (weightLbs <= 0.44) return 5.50;
+    if (weightLbs <= 1.1) return 7.50;
+    if (weightLbs <= 2.2) return 9.50;
+    if (weightLbs <= 5.5) return 14.00;
+    return 20.00;
+  } else {
+    if (weightLbs <= 1.0) return 9.00;
+    if (weightLbs <= 2.0) return 12.00;
+    if (weightLbs <= 5.0) return 18.00;
+    if (weightLbs <= 10.0) return 28.00;
+    return 40.00;
+  }
+}
+
 /**
  * Perform multi-site simulation calculations for a given input.
  */
@@ -264,34 +407,13 @@ export function calculateMultiSiteSimulation(
       transactionRate = site.transactionRate || 0.025;
       fixedPaymentFee = (site.id === 'US' || site.id === 'UK') ? 0.30 : 0.0;
     } else if (platformId === 'amazon') {
-      // Amazon Commission logic based on categories
-      fixedFee = 0.30; // Default minimum commission ($0.30)
-      if (site.id === 'CA') fixedFee = 0.40;
-      else if (site.id === 'MX') fixedFee = 5.0;
-      else if (site.id === 'UK') fixedFee = 0.30;
-      else if (['DE', 'FR', 'IT', 'ES'].includes(site.id)) fixedFee = 0.30;
-      else if (site.id === 'JP') fixedFee = 30.0;
+      const catKey = input.category || '';
+      const customRate = AMAZON_REFERRAL_FEES[catKey] !== undefined ? AMAZON_REFERRAL_FEES[catKey] : 0.15;
+      commissionRate = customRate;
+      
+      const minFeeUSD = AMAZON_MIN_FEE_RULES[catKey] !== undefined ? AMAZON_MIN_FEE_RULES[catKey] : 0.30;
+      fixedFee = minFeeUSD * localToUSDExchangeRate;
 
-      // Select commission rate
-      if (input.category === 'electronics') {
-        commissionRate = (site.id === 'UK' || site.id === 'JP') ? 0.07 : 0.08;
-      } else if (input.category === 'fashion') {
-        commissionRate = site.id === 'JP' ? 0.07 : (['US', 'CA', 'MX'].includes(site.id) ? 0.17 : 0.15);
-      } else if (input.category === 'cosmetics') {
-        commissionRate = (site.id === 'US' || site.id === 'CA') ? 0.08 : 0.15;
-      } else if (input.category === 'home') {
-        commissionRate = 0.15;
-      } else if (input.category === 'toys') {
-        commissionRate = 0.15;
-      } else if (input.category === 'jewelry') {
-        commissionRate = 0.20;
-      } else if (input.category === 'books') {
-        commissionRate = 0.15;
-      } else {
-        commissionRate = 0.15; // default
-      }
-
-      // Payment processing fees: 2.9% + 0.30 (MX: 3% + 2, JP: 3% + 30)
       if (site.id === 'MX') {
         transactionRate = 0.03;
         fixedPaymentFee = 2.0;
@@ -300,13 +422,11 @@ export function calculateMultiSiteSimulation(
         fixedPaymentFee = 30.0;
       } else {
         transactionRate = 0.029;
-        fixedPaymentFee = site.id === 'CA' ? 0.30 : (['UK', 'DE', 'FR', 'IT', 'ES'].includes(site.id) ? 0.30 : 0.30);
+        fixedPaymentFee = 0.30 * localToUSDExchangeRate;
       }
     } else if (platformId === 'etsy') {
-      // Etsy Commission: 6.5%
       commissionRate = 0.065;
 
-      // Listing flat fee equivalent ($0.20 or other currency equivalent)
       if (site.id === 'CA') fixedFee = 0.20;
       else if (site.id === 'UK') fixedFee = 0.20;
       else if (['DE', 'FR', 'IT', 'ES'].includes(site.id)) fixedFee = 0.20;
@@ -315,7 +435,6 @@ export function calculateMultiSiteSimulation(
       else if (site.id === 'MX') fixedFee = 4.0;
       else fixedFee = 0.20;
 
-      // Payment fee: 3.0% + $0.25 (or local currency equivalent)
       transactionRate = 0.03;
       if (site.id === 'CA') fixedPaymentFee = 0.25;
       else if (site.id === 'UK') fixedPaymentFee = 0.25;
@@ -325,35 +444,18 @@ export function calculateMultiSiteSimulation(
       else if (site.id === 'MX') fixedPaymentFee = 5.0;
       else fixedPaymentFee = 0.25;
     } else if (platformId === 'walmart') {
-      // Walmart Commission Rules
-      fixedFee = 0.30;
-      if (site.id === 'CA') fixedFee = 0.40;
-      else if (site.id === 'MX') fixedFee = 5.0;
-      else if (site.id === 'UK') fixedFee = 0.30;
-      else if (['DE', 'FR', 'IT', 'ES'].includes(site.id)) fixedFee = 0.30;
-      else if (site.id === 'AU') fixedFee = 0.30;
+      const catKey = input.category || '';
+      const customRate = WALMART_REFERRAL_FEES[catKey] !== undefined ? WALMART_REFERRAL_FEES[catKey] : 0.15;
+      commissionRate = customRate;
 
-      if (input.category === 'electronics') {
-        commissionRate = 0.08;
-      } else if (input.category === 'home') {
-        commissionRate = 0.15;
-      } else if (input.category === 'fashion') {
-        commissionRate = 0.15;
-      } else if (input.category === 'jewelry') {
-        commissionRate = 0.20;
-      } else if (input.category === 'grocery') {
-        commissionRate = 0.18;
-      } else {
-        commissionRate = 0.15;
-      }
+      fixedFee = WALMART_MIN_FEE * localToUSDExchangeRate;
 
-      // Walmart Payment: 2.9% + 0.30 (MX: 3% + 2)
       if (site.id === 'MX') {
         transactionRate = 0.03;
         fixedPaymentFee = 2.0;
       } else {
         transactionRate = 0.029;
-        fixedPaymentFee = site.id === 'CA' ? 0.30 : 0.30;
+        fixedPaymentFee = 0.30 * localToUSDExchangeRate;
       }
     } else if (platformId === 'shopify') {
       commissionRate = 0.0;
@@ -385,6 +487,47 @@ export function calculateMultiSiteSimulation(
     const generalExpensesLocal = generalExpensesRMB * cnyToLocalRate;
     const totalCostLocal = totalRmbCost * cnyToLocalRate;
 
+    // Auto-calculate fulfillment and storage if Amazon/Walmart
+    let resolvedFbtFeeLocal = isVirtual ? 0 : (input.fbtFeeLocal || 0);
+    let resolvedStorageFeeLocal = isVirtual ? 0 : (input.storageFeeLocal || 0);
+
+    const weight = input.productWeightLbs !== undefined ? input.productWeightLbs : 0.5;
+    const length = input.dimensionLengthInches !== undefined ? input.dimensionLengthInches : 10;
+    const width = input.dimensionWidthInches !== undefined ? input.dimensionWidthInches : 8;
+    const height = input.dimensionHeightInches !== undefined ? input.dimensionHeightInches : 1;
+    const dims = { length, width, height };
+    const fromChina = input.fbmShippingFromChina || false;
+
+    if (platformId === 'amazon') {
+      const mode = input.amazonBusinessMode || 'FBA';
+      if (mode === 'FBA' || mode === 'AWD') {
+        const baseFbaUSD = getFBAFee(weight, dims);
+        const finalFbaUSD = mode === 'AWD' ? baseFbaUSD + 0.50 : baseFbaUSD;
+        resolvedFbtFeeLocal = finalFbaUSD * localToUSDExchangeRate;
+        
+        const storageUSD = calculateFBAStorageFee(dims, false);
+        resolvedStorageFeeLocal = storageUSD * localToUSDExchangeRate;
+      } else {
+        const shippingUSD = estimateFBMShipping(weight, fromChina);
+        resolvedFbtFeeLocal = shippingUSD * localToUSDExchangeRate;
+        resolvedStorageFeeLocal = 0.0;
+      }
+    } else if (platformId === 'walmart') {
+      const mode = input.walmartBusinessMode || 'WFS';
+      if (mode === 'WFS') {
+        const baseWfsUSD = getWFSFee(weight);
+        resolvedFbtFeeLocal = baseWfsUSD * localToUSDExchangeRate;
+
+        const volCuFt = (length * width * height) / 1728;
+        const storageUSD = volCuFt * 0.75;
+        resolvedStorageFeeLocal = storageUSD * localToUSDExchangeRate;
+      } else {
+        const shippingUSD = estimateFBMShipping(weight, fromChina);
+        resolvedFbtFeeLocal = shippingUSD * localToUSDExchangeRate;
+        resolvedStorageFeeLocal = 0.0;
+      }
+    }
+
     // Marketing and risk rates
     const affiliateRate = (input.affiliateCommissionRate || 0) / 100;
     const returnLossRate = (input.returnRate || 0) / 100;
@@ -404,11 +547,10 @@ export function calculateMultiSiteSimulation(
     const runTrialCalculation = (trialPrice: number) => {
       const taxes = trialPrice * taxRate;
       const actualAdSpend = hasAdSpendRatio ? (trialPrice * adSpendRate) : (input.adSpendLocal || 0);
-      const creatorCommission = trialPrice * affiliateRate;
+      const creatorCommission = (platformId === 'tiktok' || platformId === 'shopify') ? (trialPrice * affiliateRate) : 0.0;
 
       // Product return and damage loss: custom calculation matching guidelines
-      // "退货损耗 = 总成本 * 退货率" (Wait! To fully satisfy the formula and also provide depth, we write:
-      // 退货损耗 = totalCostLocal * returnLossRate)
+      // "退货损耗 = 总成本 * 退货率"
       const returnLoss = totalCostLocal * returnLossRate;
 
       // Platform specific commissions & transaction charges
@@ -447,20 +589,18 @@ export function calculateMultiSiteSimulation(
       }
 
       // Additional storage/fulfillment
-      const otherOverhead = isVirtual ? 0 : ((input.fbtFeeLocal || 0) + (input.storageFeeLocal || 0));
+      const otherOverhead = resolvedFbtFeeLocal + resolvedStorageFeeLocal;
       
       // Estimated Payout before payout company fees
       let estimatedPayout = 0;
       if (platformId === 'tiktok') {
-        estimatedPayout = (trialPrice + input.platformSubsidyLocal) * (1 - commissionRate) - transactionFee - (isVirtual ? 0 : (input.fbtFeeLocal || 0)) - creatorCommission;
+        estimatedPayout = (trialPrice + input.platformSubsidyLocal) * (1 - commissionRate) - transactionFee - resolvedFbtFeeLocal - creatorCommission;
       } else {
         estimatedPayout = trialPrice - commissionFee - transactionFee - otherOverhead - creatorCommission;
       }
 
       // Checkout company payouts
       const payoutFeeRate = (input.customPayoutFeeRate || 0) / 100;
-      const W_pct = site.isPercentageWithdrawal ? site.withdrawalFeeLocal : 0;
-      const W_flat = site.isPercentageWithdrawal ? 0 : site.withdrawalFeeLocal;
 
       let localPayoutFee = 0;
       if (site.isPercentageWithdrawal) {
@@ -477,11 +617,11 @@ export function calculateMultiSiteSimulation(
       const exchangeLossBufferPaid = payoutAfterLocal * exchangeLossRate;
 
       // Net profit
-      let netProfit = trialPrice - totalCostLocal - commissionFee - transactionFee - actualAdSpend - returnLoss - taxes - generalExpensesLocal - withdrawalFeePaid - exchangeLossBufferPaid - creatorCommission;
-      if (platformId === 'etsy') {
-        netProfit -= fixedFee; // listing fee deducted
-      } else if (platformId === 'tiktok') {
+      let netProfit = trialPrice - totalCostLocal - commissionFee - transactionFee - otherOverhead - actualAdSpend - returnLoss - taxes - withdrawalFeePaid - exchangeLossBufferPaid - creatorCommission;
+      if (platformId === 'tiktok') {
         netProfit -= fixedFee;
+      } else if (platformId === 'etsy') {
+        netProfit -= fixedFee; // listing fee deducted
       }
 
       const netMargin = trialPrice > 0 ? (netProfit / trialPrice) * 100 : 0;
@@ -543,7 +683,8 @@ export function calculateMultiSiteSimulation(
     const finalMetrics = runTrialCalculation(price);
 
     // Compute gross profit margin details
-    const grossProfit = price - totalCostLocal - finalMetrics.totalPlatformFees - finalMetrics.creatorCommission - finalMetrics.returnLoss - finalMetrics.taxes;
+    const otherOverheadPrice = resolvedFbtFeeLocal + resolvedStorageFeeLocal;
+    const grossProfit = price - totalCostLocal - finalMetrics.totalPlatformFees - otherOverheadPrice - finalMetrics.creatorCommission - finalMetrics.returnLoss - finalMetrics.taxes;
     const grossMargin = price > 0 ? (grossProfit / price) * 100 : 0;
     const isGrossMarginSafe = grossMargin >= 40.0;
 
@@ -552,7 +693,7 @@ export function calculateMultiSiteSimulation(
     const isROASHealthy = actualROAS >= 2.5;
 
     // Break even analysis ratio calculation
-    const costRatiosSum = (totalCostLocal + finalMetrics.totalPlatformFees + finalMetrics.creatorCommission + finalMetrics.returnLoss) / (price || 1);
+    const costRatiosSum = (totalCostLocal + finalMetrics.totalPlatformFees + otherOverheadPrice + finalMetrics.creatorCommission + finalMetrics.returnLoss) / (price || 1);
     const breakEvenROAS = costRatiosSum < 1 ? 1 / (1 - costRatiosSum) : -1;
 
     const successfulOrderRatio = Math.max(0.01, 1 - returnLossRate);
@@ -569,7 +710,7 @@ export function calculateMultiSiteSimulation(
       platformDiscountValue: input.sellerDiscountLocal || 0,
       commissionFee: finalMetrics.commissionFee,
       transactionFee: finalMetrics.transactionFee,
-      fixedFee: platformId === 'tiktok' || platformId === 'etsy' ? fixedFee : 0,
+      fixedFee: (platformId === 'tiktok' || platformId === 'etsy') ? fixedFee : 0,
       totalPlatformFees: finalMetrics.totalPlatformFees,
       forwardLogistics: domesticShippingLocal + internationalShippingLocal,
       returnLoss: finalMetrics.returnLoss,
@@ -579,6 +720,8 @@ export function calculateMultiSiteSimulation(
       adSpend: finalMetrics.actualAdSpend,
       generalOperationalExpenses: generalExpensesLocal,
       taxes: finalMetrics.taxes,
+      storageFeeLocal: resolvedStorageFeeLocal,
+      fbtFeeLocal: resolvedFbtFeeLocal,
       grossProfit,
       grossMargin,
       isGrossMarginSafe,
