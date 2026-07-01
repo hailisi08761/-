@@ -31,6 +31,161 @@ import {
   ClipboardCheck
 } from 'lucide-react';
 
+export function VectorFlag({ id, className = "h-4 w-6 object-cover rounded-xs" }: { id: string; className?: string }) {
+  const normId = id.toUpperCase();
+  switch (normId) {
+    case 'US':
+      return (
+        <svg viewBox="0 0 7410 3900" className={className}>
+          <rect width="7410" height="3900" fill="#b22234" />
+          <path d="M0,300h7410M0,900h7410M0,1500h7410M0,2100h7410M0,2700h7410M0,3300h7410" stroke="#fff" strokeWidth="300" />
+          <rect width="2964" height="2100" fill="#3c3b6e" />
+          <g fill="#fff">
+            <circle cx="296" cy="150" r="45" /><circle cx="888" cy="150" r="45" /><circle cx="1480" cy="150" r="45" /><circle cx="2072" cy="150" r="45" /><circle cx="2664" cy="150" r="45" />
+            <circle cx="592" cy="300" r="45" /><circle cx="1184" cy="300" r="45" /><circle cx="1776" cy="300" r="45" /><circle cx="2368" cy="300" r="45" />
+            <circle cx="296" cy="450" r="45" /><circle cx="888" cy="450" r="45" /><circle cx="1480" cy="450" r="45" /><circle cx="2072" cy="450" r="45" /><circle cx="2664" cy="450" r="45" />
+            <circle cx="592" cy="600" r="45" /><circle cx="1184" cy="600" r="45" /><circle cx="1776" cy="600" r="45" /><circle cx="2368" cy="600" r="45" />
+            <circle cx="296" cy="750" r="45" /><circle cx="888" cy="750" r="45" /><circle cx="1480" cy="750" r="45" /><circle cx="2072" cy="750" r="45" /><circle cx="2664" cy="750" r="45" />
+            <circle cx="592" cy="900" r="45" /><circle cx="1184" cy="900" r="45" /><circle cx="1776" cy="900" r="45" /><circle cx="2368" cy="900" r="45" />
+            <circle cx="296" cy="1050" r="45" /><circle cx="888" cy="1050" r="45" /><circle cx="1480" cy="1050" r="45" /><circle cx="2072" cy="1050" r="45" /><circle cx="2664" cy="1050" r="45" />
+            <circle cx="592" cy="1200" r="45" /><circle cx="1184" cy="1200" r="45" /><circle cx="1776" cy="1200" r="45" /><circle cx="2368" cy="1200" r="45" />
+            <circle cx="296" cy="1350" r="45" /><circle cx="888" cy="1350" r="45" /><circle cx="1480" cy="1350" r="45" /><circle cx="2072" cy="1350" r="45" /><circle cx="2664" cy="1350" r="45" />
+            <circle cx="592" cy="1500" r="45" /><circle cx="1184" cy="1500" r="45" /><circle cx="1776" cy="1500" r="45" /><circle cx="2368" cy="1500" r="45" />
+            <circle cx="296" cy="1650" r="45" /><circle cx="888" cy="1650" r="45" /><circle cx="1480" cy="1650" r="45" /><circle cx="2072" cy="1650" r="45" /><circle cx="2664" cy="1650" r="45" />
+            <circle cx="592" cy="1800" r="45" /><circle cx="1184" cy="1800" r="45" /><circle cx="1776" cy="1800" r="45" /><circle cx="2368" cy="1800" r="45" />
+            <circle cx="296" cy="1950" r="45" /><circle cx="888" cy="1950" r="45" /><circle cx="1480" cy="1950" r="45" /><circle cx="2072" cy="1950" r="45" /><circle cx="2664" cy="1950" r="45" />
+          </g>
+        </svg>
+      );
+    case 'UK':
+    case 'GB':
+      return (
+        <svg viewBox="0 0 60 30" className={className}>
+          <rect width="60" height="30" fill="#012169" />
+          <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" strokeWidth="6" />
+          <path d="M0,0 L60,30 M60,0 L0,30" stroke="#c8102e" strokeWidth="4" />
+          <path d="M30,0 V30 M0,15 H60" stroke="#fff" strokeWidth="10" />
+          <path d="M30,0 V30 M0,15 H60" stroke="#c8102e" strokeWidth="6" />
+        </svg>
+      );
+    case 'JP':
+      return (
+        <svg viewBox="0 0 30 20" className={className}>
+          <rect width="30" height="20" fill="#fff" stroke="#f1f5f9" strokeWidth="0.5" />
+          <circle cx="15" cy="10" r="6" fill="#bc002d" />
+        </svg>
+      );
+    case 'MX':
+      return (
+        <svg viewBox="0 0 30 20" className={className}>
+          <rect width="10" height="20" fill="#006847" />
+          <rect x="10" width="10" height="20" fill="#fff" stroke="#f1f5f9" strokeWidth="0.5" />
+          <rect x="20" width="10" height="20" fill="#c8102e" />
+          <circle cx="15" cy="10" r="1.5" fill="#8b5a2b" />
+        </svg>
+      );
+    case 'MY':
+      return (
+        <svg viewBox="0 0 28 14" className={className}>
+          <rect width="28" height="14" fill="#fff" />
+          <path d="M0,1 H28 M0,3 H28 M0,5 H28 M0,7 H28 M0,9 H28 M0,11 H28 M0,13 H28" stroke="#cc0000" strokeWidth="1" />
+          <rect width="14" height="8" fill="#000066" />
+          <circle cx="6" cy="4" r="2.5" fill="#ffcc00" />
+          <circle cx="7" cy="4" r="2.5" fill="#000066" />
+        </svg>
+      );
+    case 'TH':
+      return (
+        <svg viewBox="0 0 30 20" className={className}>
+          <rect width="30" height="20" fill="#a51931" />
+          <rect y="3.33" width="30" height="13.34" fill="#f4f5f8" />
+          <rect y="6.67" width="30" height="6.67" fill="#2d2a4a" />
+        </svg>
+      );
+    case 'PH':
+      return (
+        <svg viewBox="0 0 30 15" className={className}>
+          <rect width="30" height="7.5" fill="#0038a8" />
+          <rect y="7.5" width="30" height="7.5" fill="#ce1126" />
+          <polygon points="0,0 13,7.5 0,15" fill="#fff" />
+          <circle cx="4.3" cy="7.5" r="1.5" fill="#fcd116" />
+        </svg>
+      );
+    case 'SG':
+      return (
+        <svg viewBox="0 0 30 20" className={className}>
+          <rect width="30" height="10" fill="#ee2536" />
+          <rect y="10" width="30" height="10" fill="#fff" stroke="#f1f5f9" strokeWidth="0.5" />
+          <path d="M 4 5 A 3 3 0 1 0 8 5 A 2.5 2.5 0 1 1 4 5" fill="#fff" />
+        </svg>
+      );
+    case 'VN':
+      return (
+        <svg viewBox="0 0 30 20" className={className}>
+          <rect width="30" height="20" fill="#da251d" />
+          <polygon points="15,4 17.35,11.25 23.5,11.25 18.5,14.9 20.4,21.75 15,17.5 9.6,21.75 11.5,14.9 6.5,11.25 12.65,11.25" fill="#ffff00" transform="scale(0.8) translate(3.75, 2)" />
+        </svg>
+      );
+    case 'CA':
+      return (
+        <svg viewBox="0 0 30 15" className={className}>
+          <rect width="7.5" height="15" fill="#ff0000" />
+          <rect x="7.5" width="15" height="15" fill="#fff" />
+          <rect x="22.5" width="7.5" height="15" fill="#ff0000" />
+          <path d="M 15 3 L 16 6 L 19 5 L 18 8 L 21 9 L 18 10 L 19 12 L 15 11 L 11 12 L 12 10 L 9 9 L 12 8 L 11 5 L 14 6 Z" fill="#ff0000" />
+        </svg>
+      );
+    case 'AU':
+      return (
+        <svg viewBox="0 0 30 15" className={className}>
+          <rect width="30" height="15" fill="#000033" />
+          <path d="M0,0 L15,7.5 M15,0 L0,7.5" stroke="#fff" strokeWidth="1" />
+          <path d="M7.5,0 V7.5 M0,3.75 H15" stroke="#fff" strokeWidth="2" />
+          <path d="M7.5,0 V7.5 M0,3.75 H15" stroke="#cc0000" strokeWidth="1" />
+          <circle cx="22.5" cy="11.25" r="0.6" fill="#fff" />
+          <circle cx="25.5" cy="6" r="0.6" fill="#fff" />
+          <circle cx="25.5" cy="4.5" r="0.6" fill="#fff" />
+          <circle cx="27.5" cy="8.5" r="0.6" fill="#fff" />
+        </svg>
+      );
+    case 'DE':
+      return (
+        <svg viewBox="0 0 30 18" className={className}>
+          <rect width="30" height="6" fill="#000" />
+          <rect y="6" width="30" height="6" fill="#dd0000" />
+          <rect y="12" width="30" height="6" fill="#ffce00" />
+        </svg>
+      );
+    case 'FR':
+      return (
+        <svg viewBox="0 0 30 20" className={className}>
+          <rect width="10" height="20" fill="#00209f" />
+          <rect x="10" width="10" height="20" fill="#fff" stroke="#f1f5f9" strokeWidth="0.5" />
+          <rect x="20" width="10" height="20" fill="#f31830" />
+        </svg>
+      );
+    case 'IT':
+      return (
+        <svg viewBox="0 0 30 20" className={className}>
+          <rect width="10" height="20" fill="#009246" />
+          <rect x="10" width="10" height="20" fill="#fff" stroke="#f1f5f9" strokeWidth="0.5" />
+          <rect x="20" width="10" height="20" fill="#ce2b37" />
+        </svg>
+      );
+    case 'ES':
+      return (
+        <svg viewBox="0 0 30 20" className={className}>
+          <rect width="30" height="5" fill="#c60b1e" />
+          <rect y="5" width="30" height="10" fill="#ffc400" />
+          <rect y="15" width="30" height="5" fill="#c60b1e" />
+          <circle cx="7.5" cy="10" r="1.5" fill="#c60b1e" />
+        </svg>
+      );
+    default:
+      return <span className="text-sm font-bold text-slate-400">{id}</span>;
+  }
+}
+
 interface SiteSimulatorProps {
   results: MultiSiteResult[];
   input: SimulationInput;
@@ -68,7 +223,7 @@ export default function SiteSimulator({
   ordersFeedbackMsg,
   setOrdersFeedbackMsg
 }: SiteSimulatorProps) {
-  const [selectedSiteId, setSelectedSiteId] = useState<string>('US');
+  const selectedSiteId = input.siteId || 'US';
   const [displayInCNY, setDisplayInCNY] = useState<boolean>(false);
   const [showCostBreakdown, setShowCostBreakdown] = useState<boolean>(false);
   const [returnRateThreshold, setReturnRateThreshold] = useState<number>(10);
@@ -799,7 +954,7 @@ export default function SiteSimulator({
     // Auto transition target site if current site isn't supported by the chosen platform
     const supportedSites = SITES_BY_PLATFORM[platformId] || [];
     if (supportedSites.length > 0 && !supportedSites.includes(selectedSiteId)) {
-      setSelectedSiteId(supportedSites[0]);
+      onChangeInput('siteId', supportedSites[0]);
     }
   }, [platformId]);
 
@@ -1596,10 +1751,10 @@ export default function SiteSimulator({
         
         {/* Left Side: Parameters Operations & Insights vertical stack (col-span-7) */}
         <div className="lg:col-span-7 flex flex-col space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-7 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* COLUMN 1: 平台与销售大区选择 (md:col-span-3) */}
-            <div className="md:col-span-3 bg-white border-slate-200/80 text-slate-800 rounded-3xl p-6 shadow-md hover:shadow-lg transition-all duration-300 space-y-6 flex flex-col justify-between border">
+            {/* COLUMN 1: 平台与销售大区选择 */}
+            <div className="bg-white border-slate-200/80 text-slate-800 rounded-3xl p-6 shadow-md hover:shadow-lg transition-all duration-300 space-y-6 flex flex-col justify-start border">
               <div className="space-y-5">
                 {/* A. Platform Selector */}
                 <div className="space-y-2">
@@ -1691,14 +1846,14 @@ export default function SiteSimulator({
                       return (
                         <button
                           key={site.id}
-                          onClick={() => setSelectedSiteId(site.id)}
+                          onClick={() => onChangeInput('siteId', site.id)}
                           className={`flex items-center space-x-2.5 p-2 rounded-xl border text-left transition-all duration-300 group ${
                             isSelected
                               ? 'border-indigo-600 bg-indigo-50/70 ring-1 ring-indigo-500/20 shadow-sm scale-[1.02]'
                               : 'border-slate-150 bg-slate-50/50 hover:bg-white hover:border-slate-350 hover:shadow-xs'
                           }`}
                         >
-                          <span className="text-xl filter drop-shadow-sm group-hover:scale-110 transition-transform duration-300">{siteFlagMap[site.id] || '🌐'}</span>
+                          <VectorFlag id={site.id} className="h-4.5 w-7 shrink-0 rounded-xs border border-slate-200 shadow-2xs group-hover:scale-110 transition-transform duration-300" />
                           <div className="leading-tight flex-1 min-w-0">
                             <span className="block text-sm font-bold text-slate-800 truncate">{site.name}</span>
                             <span className="block text-xs text-slate-500 font-mono mt-1">{site.currency}</span>
@@ -1738,7 +1893,10 @@ export default function SiteSimulator({
               {/* F. Exchange Rates (Keep cleanly at the bottom) */}
               <div className="pt-4 border-t border-slate-150 space-y-3">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="font-bold text-slate-600 uppercase tracking-wider pl-1">SAFE 汇率核验</span>
+                  <div className="flex flex-col">
+                    <span className="font-bold text-slate-600 uppercase tracking-wider pl-1">SAFE 汇率核验</span>
+                    <span className="text-[10px] text-slate-400 font-bold pl-1 font-sans">实时汇率·每日自动同步</span>
+                  </div>
                   {onFetchRates && (
                     <button
                       onClick={onFetchRates}
@@ -1764,8 +1922,8 @@ export default function SiteSimulator({
               </div>
             </div>
 
-            {/* COLUMN 2: 核心跨境参数与自设成本配置 (md:col-span-4) */}
-            <div className="md:col-span-4 bg-white border-slate-200/80 text-slate-800 rounded-3xl p-6 shadow-md hover:shadow-lg transition-all duration-300 space-y-4 border">
+            {/* COLUMN 2: 核心跨境参数与自设成本配置 */}
+            <div className="bg-white border-slate-200/80 text-slate-800 rounded-3xl p-6 shadow-md hover:shadow-lg transition-all duration-300 space-y-4 border flex flex-col justify-start">
               <div className="space-y-4">
                 
                 {/* 0. Product Name with Auto-Tax Recognition */}
@@ -1964,7 +2122,7 @@ export default function SiteSimulator({
 
                 {/* A. Domestic & International First-Leg Shipping is always shown to let users customize the First-Leg Logistics costs! */}
                 <div className="space-y-4 p-4 bg-slate-50/50 rounded-2xl border border-slate-200">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wide block">🚚 首公里与头程物流运费 (First-Leg & Inbound)</span>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wide block">首公里与头程物流运费 (First-Leg & Inbound)</span>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {/* B. Domestic Shipping */}
@@ -2018,10 +2176,10 @@ export default function SiteSimulator({
                   {(platformId === 'amazon' || platformId === 'walmart') ? (
                     <div className="p-3 bg-indigo-50/70 border border-indigo-100 rounded-xl space-y-2">
                       <span className="text-[11px] font-black text-indigo-700 flex items-center gap-1">
-                        <Sparkles className="h-3.5 w-3.5" /> FBA/WFS 智能配送与仓储费已匹配
+                        FBA/WFS 智能配送与仓储费已匹配
                       </span>
                       <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-600 font-bold">🚚 自动快递配送费 (Delivery):</span>
+                        <span className="text-slate-600 font-bold">自动快递配送费 (Delivery):</span>
                         <strong className="text-indigo-600 font-mono font-extrabold">
                           {selectedResult.fbtFeeLocal !== undefined 
                             ? `${selectedResult.symbol}${selectedResult.fbtFeeLocal.toFixed(2)} ${selectedResult.currency}` 
@@ -2029,7 +2187,7 @@ export default function SiteSimulator({
                         </strong>
                       </div>
                       <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-600 font-bold">🏢 智能月度仓储费 (Storage):</span>
+                        <span className="text-slate-600 font-bold">智能月度仓储费 (Storage):</span>
                         <strong className="text-indigo-600 font-mono font-extrabold">
                           {selectedResult.storageFeeLocal !== undefined 
                             ? `${selectedResult.symbol}${selectedResult.storageFeeLocal.toFixed(2)} ${selectedResult.currency}` 
@@ -2257,68 +2415,13 @@ export default function SiteSimulator({
 
           </div>
 
-          {/* Quick Strategic Insights Bar below Operations area */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-100/40 border border-slate-200/50 p-4 rounded-2xl shadow-2xs">
-            
-            <div className="bg-white rounded-xl border border-slate-150 p-3 shadow-2xs flex items-center space-x-3">
-              <div className="p-2.5 bg-indigo-50 rounded-lg text-indigo-600">
-                <Globe className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <span className="block text-xs text-slate-500 font-extrabold mb-0.5 whitespace-nowrap">最优投产推荐站点</span>
-                <span className="text-sm font-bold text-slate-800 flex items-center gap-1">
-                  {topSiteRecommendation.siteName} 
-                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-1 py-0.2 rounded font-mono">
-                    净利: {topSiteRecommendation.netMargin.toFixed(0)}%
-                  </span>
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl border border-slate-150 p-3 shadow-2xs flex items-center space-x-3">
-              <div className="p-2.5 bg-emerald-50 rounded-lg text-emerald-600">
-                <Percent className="h-4 w-4" />
-              </div>
-              <div>
-                <span className="block text-xs text-slate-500 font-extrabold mb-0.5">全球大盘均值毛利率</span>
-                <span className={`text-sm font-bold font-mono ${averageGrossMargin >= 40 ? 'text-emerald-600' : 'text-amber-600'}`}>
-                  {averageGrossMargin.toFixed(1)}% {averageGrossMargin >= 40 ? ' (空间健康)' : ' (空间偏薄)'}
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl border border-slate-150 p-3 shadow-2xs flex items-center space-x-3">
-              <div className="p-2.5 bg-violet-50 rounded-lg text-violet-600">
-                <CalendarDays className="h-4 w-4" />
-              </div>
-              <div>
-                <span className="block text-xs text-slate-500 font-extrabold mb-0.5">标准资金周转到款</span>
-                <span className="text-sm font-bold text-slate-850 font-mono">
-                  {input.payoutToolId === 'lianlian' ? 'D+ 16 天左右' : 'D+ 11 天放款'}
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl border border-slate-150 p-3 shadow-2xs flex items-center space-x-3">
-              <div className="p-2.5 bg-amber-50 rounded-lg text-amber-600">
-                <AlertTriangle className="h-4 w-4" />
-              </div>
-              <div>
-                <span className="block text-xs text-slate-500 font-extrabold mb-0.5">投流安全阀限制</span>
-                <span className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                  {input.category === 'fashion' ? '退货上限 15%' : '退货上限 5%'}
-                </span>
-              </div>
-            </div>
-
-          </div>
         </div>
 
         {/* ======================================================== */}
         {/* ======================================================== */}
         {/* COLUMN 3: 实时结果看板 (col-span-5) */}
         {/* ======================================================== */}
-        <div className={`lg:col-span-5 rounded-2xl p-7 shadow-xl flex flex-col justify-between space-y-5 border transition-all duration-350 ${resultsTheme.containerBg}`}>
+        <div className={`lg:col-span-5 h-fit rounded-2xl p-7 shadow-xl flex flex-col justify-start space-y-5 border transition-all duration-350 ${resultsTheme.containerBg}`}>
           
           <div className="space-y-4">
             {/* Big Headline Price block */}
@@ -2506,7 +2609,7 @@ export default function SiteSimulator({
             <div className={`rounded-3xl p-5 space-y-4 border shadow-lg ${resultsTheme.boxBg}`}>
               <div className={`flex items-center justify-between border-b pb-3 ${resultsTheme.divider}`}>
                 <span className={`font-bold text-xs tracking-wider flex items-center gap-1.5 uppercase font-mono ${resultsTheme.accentText}`}>
-                  📊 订单与利润周期评估 ({selectedResult.siteId})
+                  订单与利润周期评估 ({selectedResult.siteId})
                 </span>
                 <div className={`flex p-0.5 rounded-lg text-xs ${resultsTheme.boxInnerBg}`}>
                   {(['day', 'week', 'month'] as const).map((frame) => (
@@ -2601,54 +2704,9 @@ export default function SiteSimulator({
                         {adjustedNetMargin.toFixed(1)}%
                       </span>
                     </div>
-
-                    <div className={`text-[10px] leading-relaxed ${resultsTheme.textMuted}`}>
-                      * 测算公式: 单量 × 零售价 ({selectedResult.symbol}{selectedResult.suggestedPriceLocal.toFixed(2)})，已自动扣减该站点的各级税费、物流、达人带货、退款损耗与结汇损失。
-                    </div>
                   </div>
                 );
               })()}
-            </div>
-
-            {/* Threshold Checks Box */}
-            <div className={`p-4.5 rounded-xl border flex items-start gap-3 text-sm ${
-              selectedResult.grossMargin >= 40.0
-                ? (resultsTheme.isLight ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-emerald-950/20 border-emerald-500/20 text-emerald-100')
-                : selectedResult.grossMargin <= 0
-                  ? (resultsTheme.isLight ? 'bg-rose-50 border-rose-200 text-rose-900' : 'bg-rose-950/40 border-rose-500/40 text-rose-100')
-                  : (resultsTheme.isLight ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-yellow-950/20 border-yellow-500/20 text-yellow-100')
-            }`}>
-              {selectedResult.grossMargin >= 40.0 ? (
-                <>
-                  <ShieldCheck className="h-5 w-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="block font-bold">财务状况良好 ({selectedResult.grossMargin.toFixed(1)}%)</span>
-                    <p className={`text-xs leading-relaxed mt-0.5 ${resultsTheme.isLight ? 'text-slate-600 font-medium' : 'text-slate-300 font-semibold'}`}>
-                      当前毛利率为 {selectedResult.grossMargin.toFixed(1)}%，处于安全盈利水位。具备充足的广告投放预算与达人分佣带货空间，可稳定抵抗退货风险。
-                    </p>
-                  </div>
-                </>
-              ) : selectedResult.grossMargin <= 0 ? (
-                <>
-                  <ShieldAlert className="h-5 w-5 text-rose-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="block font-bold text-rose-500 font-black">毛利亏损预警 ({selectedResult.grossMargin.toFixed(1)}%)</span>
-                    <p className={`text-xs leading-relaxed mt-0.5 ${resultsTheme.isLight ? 'text-rose-700 font-medium' : 'text-rose-200'}`}>
-                      当前定价下毛利率为 {selectedResult.grossMargin.toFixed(1)}%，已跌破保本红线！请立即优化出厂采购采购价或向上调高零售售价。
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <ShieldAlert className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="block font-bold text-yellow-650 font-black">毛利偏低预警 ({selectedResult.grossMargin.toFixed(1)}%)</span>
-                    <p className={`text-xs leading-relaxed mt-0.5 ${resultsTheme.isLight ? 'text-amber-850 font-semibold' : 'text-slate-300 font-semibold'}`}>
-                      当前测算毛利率为 {selectedResult.grossMargin.toFixed(1)}%，低于大盘 40% 的理想水位。建议通过整合物流渠道或微调零售售价来提升盈利弹性。
-                    </p>
-                  </div>
-                </>
-              )}
             </div>
           </div>
 
@@ -2667,6 +2725,7 @@ export default function SiteSimulator({
                       outerRadius={85}
                       paddingAngle={3}
                       dataKey="value"
+                      isAnimationActive={false}
                     >
                       {breakdownData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
@@ -2705,6 +2764,60 @@ export default function SiteSimulator({
 
         </div>
 
+      </div>
+
+      {/* Quick Strategic Insights Bar (Full Width standalone row) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-100/40 border border-slate-200/50 p-4 rounded-2xl shadow-2xs my-6">
+        <div className="bg-white rounded-xl border border-slate-150 p-3 shadow-2xs flex items-center space-x-3">
+          <div className="p-2.5 bg-indigo-50 rounded-lg text-indigo-600">
+            <Globe className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <span className="block text-xs text-slate-500 font-extrabold mb-0.5 whitespace-nowrap">最优投产推荐站点</span>
+            <span className="text-sm font-bold text-slate-800 flex items-center gap-1">
+              {topSiteRecommendation.siteName} 
+              <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-1 py-0.2 rounded font-mono">
+                净利: {topSiteRecommendation.netMargin.toFixed(0)}%
+              </span>
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-150 p-3 shadow-2xs flex items-center space-x-3">
+          <div className="p-2.5 bg-emerald-50 rounded-lg text-emerald-600">
+            <Percent className="h-4 w-4" />
+          </div>
+          <div>
+            <span className="block text-xs text-slate-500 font-extrabold mb-0.5">全球大盘均值毛利率</span>
+            <span className={`text-sm font-bold font-mono ${averageGrossMargin >= 40 ? 'text-emerald-600' : 'text-amber-600'}`}>
+              {averageGrossMargin.toFixed(1)}% {averageGrossMargin >= 40 ? ' (空间健康)' : ' (空间偏薄)'}
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-150 p-3 shadow-2xs flex items-center space-x-3">
+          <div className="p-2.5 bg-violet-50 rounded-lg text-violet-600">
+            <CalendarDays className="h-4 w-4" />
+          </div>
+          <div>
+            <span className="block text-xs text-slate-500 font-extrabold mb-0.5">标准资金周转到款</span>
+            <span className="text-sm font-bold text-slate-850 font-mono">
+              {input.payoutToolId === 'lianlian' ? 'D+ 16 天左右' : 'D+ 11 天放款'}
+            </span>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-slate-150 p-3 shadow-2xs flex items-center space-x-3">
+          <div className="p-2.5 bg-amber-50 rounded-lg text-amber-600">
+            <AlertTriangle className="h-4 w-4" />
+          </div>
+          <div>
+            <span className="block text-xs text-slate-500 font-extrabold mb-0.5">投流安全阀限制</span>
+            <span className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+              {input.category === 'fashion' ? '退货上限 15%' : '退货上限 5%'}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* ROAS & Conversion analysis sub-grid */}
@@ -3707,7 +3820,7 @@ export default function SiteSimulator({
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div className="flex items-center space-x-2">
               <TrendingUp className="h-5.5 w-5.5 text-indigo-600" />
-              <h2 className="text-base font-bold text-slate-800">4国 TikTok Shop 利润树占比与利润率对比 (%)</h2>
+              <h2 className="text-base font-bold text-slate-800">多站点利润占比与利润率对比 (%)</h2>
             </div>
             <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-xs font-bold font-mono">
               毛利率 vs 净利率
@@ -3728,12 +3841,12 @@ export default function SiteSimulator({
                   contentStyle={{ fontSize: '12px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} 
                 />
                 <Legend iconSize={12} wrapperStyle={{ fontSize: '11px', marginTop: '10px' }} />
-                <Bar name="毛利率 %" dataKey="毛利率 (%)" fill="#4F46E5" radius={[4, 4, 0, 0]}>
+                <Bar name="毛利率 %" dataKey="毛利率 (%)" fill="#4F46E5" radius={[4, 4, 0, 0]} isAnimationActive={false}>
                   {marginChartData.map((entry, index) => (
                     <Cell key={`cell-gross-${index}`} fill={entry['毛利率 (%)'] >= 45 ? '#4F46E5' : '#818CF8'} />
                   ))}
                 </Bar>
-                <Bar name="净利率 %" dataKey="净利率 (%)" fill="#10B981" radius={[4, 4, 0, 0]}>
+                <Bar name="净利率 %" dataKey="净利率 (%)" fill="#10B981" radius={[4, 4, 0, 0]} isAnimationActive={false}>
                   {marginChartData.map((entry, index) => (
                     <Cell key={`cell-net-${index}`} fill={entry['净利率 (%)'] > 0 ? '#10B981' : '#F43F5E'} fillOpacity={0.9} />
                   ))}
@@ -3743,12 +3856,12 @@ export default function SiteSimulator({
           </div>
         </div>
 
-        {/* Card B: 4国单笔预计净利润绝对值对比 */}
+        {/* Card B: 多站点单笔预计净利润绝对值对比 */}
         <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm space-y-5">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div className="flex items-center space-x-2.5">
               <Coins className="h-5.5 w-5.5 text-indigo-600" />
-              <h2 className="text-base font-bold text-slate-800">4国预计净利润绝对值对比 ({displayInCNY ? 'RMB/￥' : '结算币种'})</h2>
+              <h2 className="text-base font-bold text-slate-800">多站点预计净利润绝对值对比 ({displayInCNY ? 'RMB/￥' : '美元/USD'})</h2>
             </div>
             <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold">
               同台币种汇率换算比对
@@ -3758,29 +3871,29 @@ export default function SiteSimulator({
           <div className="w-full h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={results.map(r => ({
-                  name: `${siteFlagMap[r.siteId] || ''} ${r.siteName}`,
-                  '预计净利润': parseFloat((displayInCNY ? r.netProfit * r.exchangeRateToCNY : r.netProfit).toFixed(2)),
-                  symbol: displayInCNY ? '￥' : r.symbol,
-                  currency: displayInCNY ? 'CNY' : r.currency,
-                }))}
+                data={results.map(r => {
+                  const netProfitUnified = displayInCNY ? r.netProfit * r.exchangeRateToCNY : r.netProfit * r.exchangeRateToUSD;
+                  return {
+                    name: `${siteFlagMap[r.siteId] || ''} ${r.siteName}`,
+                    '预计净利润': parseFloat(netProfitUnified.toFixed(2)),
+                    symbol: displayInCNY ? '￥' : '$',
+                    currency: displayInCNY ? 'CNY' : 'USD',
+                  };
+                })}
                 margin={{ top: 15, right: 10, left: -20, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#EDF2F7" />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 'bold', fill: '#4A5568' }} />
-                <YAxis tickFormatter={(val) => `${displayInCNY ? '￥' : ''}${val}`} tick={{ fontSize: 11, fill: '#4A5568' }} />
+                <YAxis tickFormatter={(val) => `${displayInCNY ? '￥' : '$'}${val}`} tick={{ fontSize: 11, fill: '#4A5568' }} />
                 <Tooltip 
-                  formatter={(value: any, name: any, props: any) => {
-                    const payload = props.payload;
-                    return [
-                      <span className="font-mono font-bold text-emerald-600">{payload.symbol}{parseFloat(value).toFixed(2)} {payload.currency}</span>,
-                      `预计净利润`
-                    ];
-                  }}
+                  formatter={(value: any) => [
+                    <span className="font-mono font-bold text-emerald-600">{displayInCNY ? '￥' : '$'}{parseFloat(value).toFixed(2)} {displayInCNY ? 'CNY' : 'USD'}</span>,
+                    `预计净利润`
+                  ]}
                   contentStyle={{ fontSize: '12px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} 
                 />
                 <Legend iconSize={12} wrapperStyle={{ fontSize: '11px', marginTop: '10px' }} />
-                <Bar name="单笔净利润" dataKey="预计净利润" fill="#059669" radius={[4, 4, 0, 0]}>
+                <Bar name="单笔净利润" dataKey="预计净利润" fill="#059669" radius={[4, 4, 0, 0]} isAnimationActive={false}>
                   {results.map((entry, index) => {
                     const hasProfit = entry.netProfit > 0;
                     return (
@@ -3836,7 +3949,6 @@ export default function SiteSimulator({
               {/* SKU-specific filtering and overrides */}
               <div className="bg-slate-50/55 p-3 rounded-xl border border-slate-200/80 space-y-3.5">
                 <div className="flex items-center space-x-1.5 border-b border-indigo-100 pb-1.5">
-                  <span className="text-xs">🎯</span>
                   <span className="text-[11px] font-black text-indigo-700 uppercase tracking-wider">识别特定出单商品 / SKU 属性 (可选)</span>
                 </div>
                 
@@ -4140,8 +4252,8 @@ export default function SiteSimulator({
                         </div>
                         <div>
                           <span className="text-slate-400 block font-semibold text-[10px] uppercase">识别站点国家</span>
-                          <span className="font-extrabold text-slate-800 flex items-center gap-1 mt-0.5">
-                            <span>{siteFlagMap[selectedResult.siteId] || '🌐'}</span>
+                          <span className="font-extrabold text-slate-800 flex items-center gap-1.5 mt-0.5">
+                            <VectorFlag id={selectedResult.siteId} className="h-3 w-4.5 rounded-xs border border-slate-200" />
                             <span>{selectedResult.siteName} ({selectedResult.siteId})</span>
                           </span>
                         </div>
@@ -4325,7 +4437,7 @@ export default function SiteSimulator({
 
                       <div className="space-y-2">
                         <h4 className="text-xs font-extrabold text-slate-800 flex items-center gap-1">
-                          <span>🎯 满足期望净利润率 ({(input.targetProfitMarginRate || 20)}%) 的精准建议定价:</span>
+                          <span>满足期望净利润率 ({(input.targetProfitMarginRate || 20)}%) 的精准建议定价:</span>
                         </h4>
                         <div className="flex flex-col md:flex-row items-baseline gap-4">
                           <div className="text-2xl font-black text-indigo-700 font-mono">

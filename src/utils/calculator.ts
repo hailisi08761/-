@@ -379,7 +379,7 @@ export function calculateMultiSiteSimulation(
 ): MultiSiteResult[] {
   const platformId = input.platformId || 'tiktok';
 
-  return SITE_FEE_CONFIGS.map((site) => {
+  const calculateSingleSite = (site: SiteFeeConfig, priceOverride?: number): MultiSiteResult => {
     // Determine the exchange rate for local currency to 1 USD
     const localToUSDExchangeRate = customExchangeRates && customExchangeRates[site.currency] !== undefined
       ? customExchangeRates[site.currency]
@@ -680,7 +680,7 @@ export function calculateMultiSiteSimulation(
     }
 
     // Determine the active working price based on user preference
-    const price = input.pricingMode === 'reverse' ? suggestedPriceLocal : input.priceLocal;
+    const price = priceOverride !== undefined ? priceOverride : (input.pricingMode === 'reverse' ? suggestedPriceLocal : input.priceLocal);
 
     // Retrieve detailed metrics at working price
     const finalMetrics = runTrialCalculation(price);
@@ -741,5 +741,34 @@ export function calculateMultiSiteSimulation(
       eCPA,
       suggestedPriceLocal
     };
+  };
+
+  // 1. Solve/calculate the selected site first
+  const selectedSiteId = input.siteId || 'US';
+  const selectedSiteConfig = SITE_FEE_CONFIGS.find(s => s.id === selectedSiteId) || SITE_FEE_CONFIGS[0];
+  const selectedResult = calculateSingleSite(selectedSiteConfig);
+
+  // 2. Get selected site's active price
+  const selectedActivePrice = input.pricingMode === 'reverse' ? selectedResult.suggestedPriceLocal : input.priceLocal;
+
+  // 3. Find selected site's exchange rate to USD
+  const selectedSiteExchangeRate = customExchangeRates && customExchangeRates[selectedSiteConfig.currency] !== undefined
+    ? customExchangeRates[selectedSiteConfig.currency]
+    : selectedSiteConfig.defaultExchangeRate;
+
+  const selectedPriceInUSD = selectedActivePrice / selectedSiteExchangeRate;
+
+  // 4. Calculate all sites using the equivalent price
+  return SITE_FEE_CONFIGS.map((site) => {
+    if (site.id === selectedSiteId) {
+      return selectedResult; // Return pre-computed selected site result
+    }
+
+    const localToUSDExchangeRate = customExchangeRates && customExchangeRates[site.currency] !== undefined
+      ? customExchangeRates[site.currency]
+      : site.defaultExchangeRate;
+
+    const equivalentLocalPrice = selectedPriceInUSD * localToUSDExchangeRate;
+    return calculateSingleSite(site, equivalentLocalPrice);
   });
 }

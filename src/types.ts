@@ -26,6 +26,7 @@ export interface PayoutTool {
 
 export interface SimulationInput {
   // Product pricing metrics
+  siteId?: string; // Currently active selected site ID for equivalent pricing comparison
   productName?: string; // Product name for automated tax rates
   businessMode?: 'virtual' | 'local' | 'overseas'; // 'virtual' | 'local' | 'overseas'
   cogs: number; // Product cost (RMB or USD) - we can let user toggle input currency (Default CNY/RMB)

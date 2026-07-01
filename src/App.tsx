@@ -7,6 +7,8 @@ import PaymentOptimizer from './components/PaymentOptimizer';
 import CapitalAlert from './components/CapitalAlert';
 import RiskAnalysis from './components/RiskAnalysis';
 import AdminFinancePanel from './components/AdminFinancePanel';
+import { PriceSnapLogo } from './components/PriceSnapLogo';
+import { CelebrationRain } from './components/CelebrationRain';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Globe,
@@ -71,6 +73,7 @@ const formatToBeijingTime = (dateInput: string | Date | null): string => {
 export default function App() {
   // 1. Core Simulation State (Synced across tabs for continuous calculations)
   const [input, setInput] = useState<SimulationInput>({
+    siteId: 'US', // Default active selected site ID
     cogs: 35.0, // Default product purchase cost in CNY (￥35 RMB)
     priceLocal: 29.90, // Default retail selling price in site destination本币
     category: 'fashion', // Default Category (Fashion) -> sets standard parameters
@@ -125,7 +128,10 @@ export default function App() {
       { text: '财源广进 🧧', color: 'from-red-500 to-rose-600 text-white font-black' },
     ];
 
-    const newBursts = items.map((item, idx) => {
+    // Pick 6 random blessing phrases to make the animation lightweight and buttery smooth
+    const selectedItems = [...items].sort(() => 0.5 - Math.random()).slice(0, 6);
+
+    const newBursts = selectedItems.map((item, idx) => {
       const angleRad = (-40 - Math.random() * 100) * (Math.PI / 180); // upward fan -40 to -140 deg
       const speed = 140 + Math.random() * 260; // randomized velocity
       const distanceX = Math.cos(angleRad) * speed;
@@ -188,6 +194,7 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
+  const [isCelebrationActive, setIsCelebrationActive] = useState<boolean>(false);
 
   // Auth form inputs
   const [authEmail, setAuthEmail] = useState<string>('');
@@ -259,6 +266,7 @@ export default function App() {
           mainCategory: newUser.mainCategory,
           preferredPayout: newUser.preferredPayout
         });
+        setIsCelebrationActive(true);
         setIsAuthModalOpen(false);
         setIsLoggingIn(false);
         resetAuthForm();
@@ -298,6 +306,7 @@ export default function App() {
             preferredPayout: newUser.preferredPayout
           });
         }
+        setIsCelebrationActive(true);
         setIsAuthModalOpen(false);
         setIsLoggingIn(false);
         resetAuthForm();
@@ -487,6 +496,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#efefef] font-sans text-slate-800 flex flex-col antialiased">
+      <CelebrationRain active={isCelebrationActive} onClose={() => setIsCelebrationActive(false)} />
       
       {/* Header and Brand */}
       <header className="bg-slate-900 text-white py-3.5 px-4 sm:px-8 border-b border-slate-800 shadow-md">
@@ -525,7 +535,7 @@ export default function App() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                <span>参考汇率 (CNY) :</span>
+                <span>参考汇率 :</span>
               </div>
               <div className="flex flex-wrap gap-2 text-[11px] font-bold justify-center">
                 <div className="bg-slate-900/60 px-2.5 py-1 rounded-lg border border-slate-800 flex items-center gap-1.5 shadow-sm">
@@ -657,68 +667,144 @@ export default function App() {
         <div>
           <AnimatePresence mode="wait">
             <motion.div
-              key={activeTab}
+              key={currentUser ? activeTab : 'auth_locked'}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.2 }}
             >
-              {activeTab === 'site' && (
-                <SiteSimulator
-                  results={simulationResults}
-                  input={input}
-                  onChangeInput={handleChangeInput}
-                  exchangeRateUSDToCNY={exchangeRateUSDToCNY}
-                  exchangeRates={exchangeRates}  // Pass exchangeRates configuration
-                  monthlyOrders={monthlyOrders}
-                  setMonthlyOrders={setMonthlyOrders}
-                  productCostDict={productCostDict}
-                  setProductCostDict={setProductCostDict}
-                  ordersFeedbackMsg={ordersFeedbackMsg}
-                  setOrdersFeedbackMsg={setOrdersFeedbackMsg}
-                />
-              )}
+               {!currentUser ? (
+                 <div className="relative overflow-hidden bg-white/80 backdrop-blur-md rounded-3xl border border-slate-200 p-8 md:p-16 text-center shadow-xl flex flex-col items-center justify-center space-y-6 max-w-4xl mx-auto my-6">
+                   {/* Absolute floating decorations */}
+                   <div className="absolute top-0 left-0 w-32 h-32 bg-indigo-200/10 rounded-full blur-3xl -translate-x-10 -translate-y-10"></div>
+                   <div className="absolute bottom-0 right-0 w-32 h-32 bg-amber-200/10 rounded-full blur-3xl translate-x-10 translate-y-10"></div>
+                   
+                   <div className="w-24 h-24 rounded-3xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-md hover:scale-105 transition-transform duration-300">
+                     <PriceSnapLogo className="w-16 h-16" />
+                   </div>
 
-              {activeTab === 'payout' && (
-                <PaymentOptimizer
-                  selectedPayoutId={input.payoutToolId}
-                  onChangePayoutId={handleChangePayoutId}
-                  customPayoutFees={customPayoutFees}
-                  onUpdatePayoutFee={handleUpdatePayoutFee}
-                  exchangeRates={exchangeRates}
-                  onUpdateExchangeRate={handleUpdateExchangeRate}
-                  exchangeRateUSDToCNY={exchangeRateUSDToCNY}
-                  onChangeUSDToCNY={setExchangeRateUSDToCNY}
-                  ratesLoading={ratesLoading}
-                  ratesFetchedAt={ratesFetchedAt}
-                  ratesSource={ratesSource}
-                  onFetchRates={fetchLiveRates}
-                />
-              )}
+                   <div className="space-y-3 max-w-xl">
+                     <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
+                       立即注册 PriceSnap 跨境利润精算大师
+                     </h2>
+                     <p className="text-slate-500 font-medium text-sm leading-relaxed max-w-xl mx-auto">
+                       算的是利润，赢的是未来。PriceSnap 现已全面升级只需花 5 秒钟免费注册/登录即可解锁全部专属出海功能：
+                     </p>
+                   </div>
 
-              {activeTab === 'capital' && (
-                <CapitalAlert
-                  priceLocal={input.priceLocal}
-                  symbol={topSiteRecommendation.symbol}
-                  exchangeRateToCNY={topSiteRecommendation.exchangeRateToCNY}
-                />
-              )}
+                   {/* Feature Grid */}
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left w-full max-w-2xl font-bold text-xs text-slate-705">
+                     <div className="p-4 bg-indigo-50/45 rounded-xl border border-indigo-100 flex items-center gap-3">
+                       <span className="text-lg">📊</span>
+                       <div>
+                         <p className="font-extrabold text-slate-800">多站点高精核算</p>
+                       </div>
+                     </div>
+                     <div className="p-4 bg-amber-50/45 rounded-xl border border-amber-100 flex items-center gap-3">
+                       <span className="text-lg">💰</span>
+                       <div>
+                         <p className="font-extrabold text-slate-800">结汇与提现路径</p>
+                       </div>
+                     </div>
+                     <div className="p-4 bg-teal-50/45 rounded-xl border border-teal-100 flex items-center gap-3">
+                       <span className="text-lg">⏰</span>
+                       <div>
+                         <p className="font-extrabold text-slate-800">到账周转实时预警</p>
+                       </div>
+                     </div>
+                     <div className="p-4 bg-rose-50/45 rounded-xl border border-rose-100 flex items-center gap-3">
+                       <span className="text-lg">🛡️</span>
+                       <div>
+                         <p className="font-extrabold text-slate-800">溢价与财务报告</p>
+                       </div>
+                     </div>
+                   </div>
 
-              {activeTab === 'risk' && (
-                <RiskAnalysis
-                  results={simulationResults}
-                  input={input}
-                  onChangeInput={handleChangeInput}
-                  exchangeRateUSDToCNY={exchangeRateUSDToCNY}
-                />
-              )}
+                   <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                     <motion.button
+                       whileHover={{ scale: 1.03 }}
+                       whileTap={{ scale: 0.96 }}
+                       onClick={() => {
+                         setAuthMode('register');
+                         setIsAuthModalOpen(true);
+                       }}
+                       className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm px-8 py-3.5 rounded-xl shadow-md transition duration-150 cursor-pointer"
+                     >
+                       <span>立即免费注册</span>
+                     </motion.button>
+                     <motion.button
+                       whileHover={{ scale: 1.03 }}
+                       whileTap={{ scale: 0.96 }}
+                       onClick={() => {
+                         setAuthMode('login');
+                         setIsAuthModalOpen(true);
+                       }}
+                       className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-sm px-6 py-3.5 rounded-xl transition duration-150 cursor-pointer border border-slate-300/45 shadow-sm"
+                     >
+                       <span>已有账号？直接登录</span>
+                     </motion.button>
+                   </div>
+                 </div>
+              ) : (
+                <>
+                  {activeTab === 'site' && (
+                    <SiteSimulator
+                      results={simulationResults}
+                      input={input}
+                      onChangeInput={handleChangeInput}
+                      exchangeRateUSDToCNY={exchangeRateUSDToCNY}
+                      exchangeRates={exchangeRates}  // Pass exchangeRates configuration
+                      monthlyOrders={monthlyOrders}
+                      setMonthlyOrders={setMonthlyOrders}
+                      productCostDict={productCostDict}
+                      setProductCostDict={setProductCostDict}
+                      ordersFeedbackMsg={ordersFeedbackMsg}
+                      setOrdersFeedbackMsg={setOrdersFeedbackMsg}
+                    />
+                  )}
 
-              {activeTab === 'admin' && (
-                <AdminFinancePanel
-                  monthlyOrders={monthlyOrders}
-                  productCostDict={productCostDict}
-                  results={simulationResults}
-                />
+                  {activeTab === 'payout' && (
+                    <PaymentOptimizer
+                      selectedPayoutId={input.payoutToolId}
+                      onChangePayoutId={handleChangePayoutId}
+                      customPayoutFees={customPayoutFees}
+                      onUpdatePayoutFee={handleUpdatePayoutFee}
+                      exchangeRates={exchangeRates}
+                      onUpdateExchangeRate={handleUpdateExchangeRate}
+                      exchangeRateUSDToCNY={exchangeRateUSDToCNY}
+                      onChangeUSDToCNY={setExchangeRateUSDToCNY}
+                      ratesLoading={ratesLoading}
+                      ratesFetchedAt={ratesFetchedAt}
+                      ratesSource={ratesSource}
+                      onFetchRates={fetchLiveRates}
+                    />
+                  )}
+
+                  {activeTab === 'capital' && (
+                    <CapitalAlert
+                      priceLocal={input.priceLocal}
+                      symbol={topSiteRecommendation.symbol}
+                      exchangeRateToCNY={topSiteRecommendation.exchangeRateToCNY}
+                    />
+                  )}
+
+                  {activeTab === 'risk' && (
+                    <RiskAnalysis
+                      results={simulationResults}
+                      input={input}
+                      onChangeInput={handleChangeInput}
+                      exchangeRateUSDToCNY={exchangeRateUSDToCNY}
+                    />
+                  )}
+
+                  {activeTab === 'admin' && (
+                    <AdminFinancePanel
+                      monthlyOrders={monthlyOrders}
+                      productCostDict={productCostDict}
+                      results={simulationResults}
+                    />
+                  )}
+                </>
               )}
             </motion.div>
           </AnimatePresence>
