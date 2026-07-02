@@ -343,36 +343,73 @@ export default function App() {
 
 
   // Base Exchange Rate USD to CNY
-  const [exchangeRateUSDToCNY, setExchangeRateUSDToCNY] = useState<number>(7.25);
+  const [exchangeRateUSDToCNY, setExchangeRateUSDToCNY] = useState<number>(() => {
+    const saved = localStorage.getItem('price_snap_usd_to_cny');
+    return saved ? Number(saved) : 7.25;
+  });
 
   // Sub-currencies configuration (Local currency per 1 USD)
-  const [exchangeRates, setExchangeRates] = useState<ExchangeRateConfig>({
-    USD: 1.0,
-    GBP: 0.78,
-    JPY: 156.0,
-    MXN: 18.2,
-    VND: 25400,
-    THB: 36.5,
-    MYR: 4.70,
-    PHP: 58.5,
-    SGD: 1.35,
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRateConfig>(() => {
+    const saved = localStorage.getItem('price_snap_exchange_rates');
+    return saved ? JSON.parse(saved) : {
+      USD: 1.0,
+      GBP: 0.78,
+      JPY: 156.0,
+      MXN: 18.2,
+      VND: 25400,
+      THB: 36.5,
+      MYR: 4.70,
+      PHP: 58.5,
+      SGD: 1.35,
+    };
   });
 
   // Rates fetch state configuration
   const [ratesLoading, setRatesLoading] = useState<boolean>(false);
-  const [ratesFetchedAt, setRatesFetchedAt] = useState<string>(() => new Date().toISOString());
-  const [ratesSource, setRatesSource] = useState<string | null>(null);
+  const [ratesFetchedAt, setRatesFetchedAt] = useState<string>(() => {
+    const saved = localStorage.getItem('price_snap_rates_fetched_at');
+    return saved || new Date().toISOString();
+  });
+  const [ratesSource, setRatesSource] = useState<string | null>(() => {
+    return localStorage.getItem('price_snap_rates_source');
+  });
   const [ratesVerification, setRatesVerification] = useState<{
     verified: boolean;
     lastCheckedAt: string;
     status: string;
     errors: string[];
-  }>({
-    verified: true,
-    lastCheckedAt: new Date().toISOString(),
-    status: "所有实时汇率符合历史波动安全区间，每日核验100%通过",
-    errors: []
+  }>(() => {
+    const saved = localStorage.getItem('price_snap_rates_verification');
+    return saved ? JSON.parse(saved) : {
+      verified: true,
+      lastCheckedAt: new Date().toISOString(),
+      status: "所有实时汇率符合历史波动安全区间，每日核验100%通过",
+      errors: []
+    };
   });
+
+  // Save exchange rates states to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('price_snap_usd_to_cny', String(exchangeRateUSDToCNY));
+  }, [exchangeRateUSDToCNY]);
+
+  useEffect(() => {
+    localStorage.setItem('price_snap_exchange_rates', JSON.stringify(exchangeRates));
+  }, [exchangeRates]);
+
+  useEffect(() => {
+    localStorage.setItem('price_snap_rates_fetched_at', ratesFetchedAt);
+  }, [ratesFetchedAt]);
+
+  useEffect(() => {
+    if (ratesSource) {
+      localStorage.setItem('price_snap_rates_source', ratesSource);
+    }
+  }, [ratesSource]);
+
+  useEffect(() => {
+    localStorage.setItem('price_snap_rates_verification', JSON.stringify(ratesVerification));
+  }, [ratesVerification]);
 
   // Pull rates from the Express backend service, with client-side direct public API failover (e.g., for static serverless environments like Vercel)
   const fetchLiveRates = async () => {
@@ -459,9 +496,9 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // Auto-init load on mount
+  // Auto-init load on mount (Use stable default baseline rates by default)
   useEffect(() => {
-    fetchLiveRates();
+    // Initial stable load completed. Users can update rates manually via "获取最新".
   }, []);
 
   // Synchronize simulation input with localStorage automatically (supports per-user savings)
