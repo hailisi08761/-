@@ -15,6 +15,12 @@ interface PaymentOptimizerProps {
   ratesLoading?: boolean;
   ratesFetchedAt?: string | null;
   ratesSource?: string | null;
+  ratesVerification?: {
+    verified: boolean;
+    lastCheckedAt: string;
+    status: string;
+    errors: string[];
+  } | null;
   onFetchRates?: () => Promise<void>;
 }
 
@@ -30,6 +36,7 @@ export default function PaymentOptimizer({
   ratesLoading = false,
   ratesFetchedAt = null,
   ratesSource = null,
+  ratesVerification = null,
   onFetchRates
 }: PaymentOptimizerProps) {
   // Find which payout tool is selected
@@ -82,9 +89,6 @@ export default function PaymentOptimizer({
               />
               <span className="absolute right-3 top-1.5 text-xs text-indigo-600 font-bold">1 USD = ￥CNY</span>
             </div>
-            <p className="text-[10px] text-indigo-500/80 mt-1">
-              目前是跨境卖家核心采购记账基础，通常预留 1.5% 汇损
-            </p>
           </div>
 
           {/* Sub-currencies */}

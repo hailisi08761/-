@@ -194,6 +194,12 @@ interface SiteSimulatorProps {
   exchangeRates: Record<string, number>;
   ratesLoading?: boolean;
   ratesFetchedAt?: string | null;
+  ratesVerification?: {
+    verified: boolean;
+    lastCheckedAt: string;
+    status: string;
+    errors: string[];
+  } | null;
   onFetchRates?: () => Promise<void>;
   
   // Lifted States
@@ -213,6 +219,7 @@ export default function SiteSimulator({
   exchangeRates,
   ratesLoading = false,
   ratesFetchedAt = null,
+  ratesVerification = null,
   onFetchRates,
   
   // Lifted Props
@@ -1894,8 +1901,10 @@ export default function SiteSimulator({
               <div className="pt-4 border-t border-slate-150 space-y-3">
                 <div className="flex justify-between items-center text-sm">
                   <div className="flex flex-col">
-                    <span className="font-bold text-slate-600 uppercase tracking-wider pl-1">SAFE 汇率核验</span>
-                    <span className="text-[10px] text-slate-400 font-bold pl-1 font-sans">实时汇率·每日自动同步</span>
+                    <span className="font-bold text-slate-600 uppercase tracking-wider pl-1">实时汇率同步</span>
+                    <span className="text-[10px] text-slate-400 font-bold pl-1 font-sans">
+                      数据每日自动获取与更新
+                    </span>
                   </div>
                   {onFetchRates && (
                     <button

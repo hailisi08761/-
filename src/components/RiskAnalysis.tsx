@@ -192,14 +192,17 @@ export default function RiskAnalysis({ results, input, onChangeInput, exchangeRa
               </div>
 
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
-                <span className="block text-[11px] text-slate-500">模拟实际投流 ROAS</span>
-                <span className="block text-2xl font-extrabold font-mono text-slate-700 mt-1">
-                  {activeResult.actualROAS > 0 ? activeResult.actualROAS.toFixed(2) : '暂无广告消耗'}
+                <span className="block text-[11px] text-slate-500">模拟实际/有效 ROAS</span>
+                <span className="block text-xl font-extrabold font-mono text-slate-700 mt-1">
+                  {activeResult.actualROAS > 0 ? activeResult.actualROAS.toFixed(2) : '0.00'}
+                  <span className="text-xs text-indigo-600 font-bold ml-1.5" title="考虑退货及货损后的有效ROAS">
+                    (有效: {activeResult.effectiveROAS ? activeResult.effectiveROAS.toFixed(2) : '0.00'})
+                  </span>
                 </span>
                 <span className={`inline-block text-[9px] mt-1 px-1.5 py-0.5 rounded-full font-bold ${
-                  activeResult.actualROAS >= activeResult.breakEvenROAS ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                  (activeResult.effectiveROAS ?? activeResult.actualROAS) >= activeResult.breakEvenROAS ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
                 }`}>
-                  {activeResult.actualROAS >= activeResult.breakEvenROAS ? '处于盈利获客区' : '处于亏损获客区'}
+                  {(activeResult.effectiveROAS ?? activeResult.actualROAS) >= activeResult.breakEvenROAS ? '处于盈利获客区' : '处于亏损获客区'}
                 </span>
               </div>
 
@@ -208,7 +211,7 @@ export default function RiskAnalysis({ results, input, onChangeInput, exchangeRa
                 <span className="block text-2xl font-extrabold font-mono text-slate-700 mt-1">
                   {activeResult.currency} {activeResult.eCPA.toFixed(2)}
                 </span>
-                <p className="text-[10px] text-slate-400 mt-1">考虑了退货扣减后的有效发件成本</p>
+                <p className="text-[10px] text-slate-400 mt-1">考虑了退货扣减后的有效签收获客成本</p>
               </div>
             </div>
           )}
@@ -221,28 +224,24 @@ export default function RiskAnalysis({ results, input, onChangeInput, exchangeRa
             退货敏感度与利润衰减曲线 ({activeResult.siteName})
           </h3>
 
-          <div className="w-full h-52">
+          <div className="w-full h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={sensitivityData}
-                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                margin={{ top: 15, right: 15, left: -15, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                <XAxis dataKey="returnRate" tick={{ fontSize: 10 }} />
-                <YAxis tickFormatter={(val) => `${val}%`} tick={{ fontSize: 10 }} />
-                <Tooltip formatter={(value: any) => [`${value}%`]} contentStyle={{ fontSize: '11px', borderRadius: '8px' }} />
-                <Legend iconSize={10} wrapperStyle={{ fontSize: '11px' }} />
-                <ReferenceLine y={40} stroke="#EF4444" strokeDasharray="3 3" label={{ value: '安全大盘毛利线', fill: '#EF4444', fontSize: 9 }} />
-                <ReferenceLine y={0} stroke="#6B7280" />
-                <Line type="monotone" dataKey="预估毛利率 (%)" stroke="#6366F1" strokeWidth={2.5} activeDot={{ r: 6 }} />
-                <Line type="monotone" dataKey="预估净利率 (%)" stroke="#10B981" strokeWidth={2.5} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                <XAxis dataKey="returnRate" tick={{ fontSize: 11, fontWeight: 'medium' }} stroke="#64748B" />
+                <YAxis tickFormatter={(val) => `${val}%`} tick={{ fontSize: 11, fontWeight: 'medium' }} stroke="#64748B" />
+                <Tooltip formatter={(value: any) => [`${value}%`]} contentStyle={{ fontSize: '12px', borderRadius: '10px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                <Legend iconSize={12} wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                <ReferenceLine y={40} stroke="#EF4444" strokeDasharray="4 4" strokeWidth={1.5} label={{ value: '安全大盘毛利线 (40%)', fill: '#EF4444', fontSize: 10, position: 'top' }} />
+                <ReferenceLine y={0} stroke="#94A3B8" strokeWidth={1.5} />
+                <Line type="monotone" name="预估毛利率 (%)" dataKey="预估毛利率 (%)" stroke="#4F46E5" strokeWidth={3.5} dot={{ r: 4 }} activeDot={{ r: 7 }} />
+                <Line type="monotone" name="预估净利率 (%)" dataKey="预估净利率 (%)" stroke="#10B981" strokeWidth={3.5} dot={{ r: 4 }} activeDot={{ r: 7 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
-
-          <p className="text-[11px] text-slate-400 mt-3 text-center">
-            随着退货率攀升，逆向仓运费加上【毁坏报废损失】将极速侵蚀毛利，导致盈亏平衡ROAS呈指数级恶化！
-          </p>
         </div>
 
         {/* Warnings on category return rules */}

@@ -4,10 +4,11 @@ import { Calendar, AlertTriangle, CheckCircle, Info, Landmark, Layers, HelpCircl
 interface CapitalAlertProps {
   priceLocal: number;
   symbol: string;
+  currencyCode: string;
   exchangeRateToCNY: number;
 }
 
-export default function CapitalAlert({ priceLocal, symbol, exchangeRateToCNY }: CapitalAlertProps) {
+export default function CapitalAlert({ priceLocal, symbol, currencyCode, exchangeRateToCNY }: CapitalAlertProps) {
   // Configurable inputs for cash cycle
   const [sellerLevel, setSellerLevel] = useState<string>('new');
   const [orderVolume, setOrderVolume] = useState<number>(300); // 300 orders batch typical
@@ -15,7 +16,7 @@ export default function CapitalAlert({ priceLocal, symbol, exchangeRateToCNY }: 
 
   // Level config mapping
   const levelConfigs: Record<string, { name: string; holdDays: number; desc: string }> = {
-    new: { name: '新手卖家/新店 (New Store)', holdDays: 14, desc: '妥投后 14 天放款 (新卖家标准保护期)' },
+    new: { name: '新手卖家/新店 (New Store)', holdDays: 14, desc: '妥投后 14 天放款 (新卖家 standard 保护期)' },
     bronze: { name: '成长商家/青铜 (Level 1)', holdDays: 8, desc: '妥投后 8 天放款 (有一定的销量与评分)' },
     silver: { name: '白银等级 (Level 2)', holdDays: 5, desc: '妥投后 5 天放款 (综合评级优秀，退款率低)' },
     gold: { name: '金牌/黄金商家 (Level 3)', holdDays: 3, desc: '妥投后 3 天放款 (平台核心大店专享福利)' },
@@ -38,10 +39,14 @@ export default function CapitalAlert({ priceLocal, symbol, exchangeRateToCNY }: 
   const totalOrderAmountCNY = totalOrderAmountLocal * exchangeRateToCNY;
   
   // Outstanding funds calculation: Suppose different statuses representing capital distribution
-  // e.g. 15% pending packaging/shipping, 50% in logistics transit, 35% in settlement waiting room
-  const packagingAmountCNY = totalOrderAmountCNY * 0.15;
-  const transitAmountCNY = totalOrderAmountCNY * 0.50;
-  const holdAmountCNY = totalOrderAmountCNY * 0.35;
+  // Proportions are dynamically calculated based on the actual number of days in each phase
+  const stockingRatio = totalDays > 0 ? stockingDays / totalDays : 0;
+  const transitRatio = totalDays > 0 ? transitDays / totalDays : 0;
+  const holdRatio = totalDays > 0 ? holdPeriodDays / totalDays : 0;
+
+  const packagingAmountCNY = totalOrderAmountCNY * stockingRatio;
+  const transitAmountCNY = totalOrderAmountCNY * transitRatio;
+  const holdAmountCNY = totalOrderAmountCNY * holdRatio;
 
   // Determine warnings based on cash cycle days
   let warningGrade: 'low' | 'medium' | 'high' = 'low';
@@ -97,7 +102,7 @@ export default function CapitalAlert({ priceLocal, symbol, exchangeRateToCNY }: 
               onChange={(e) => setOrderVolume(Math.max(1, parseInt(e.target.value) || 0))}
               className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-none transition font-mono"
             />
-            <span className="text-[10px] text-slate-400">单周期营业总额： {symbol}{totalOrderAmountLocal.toLocaleString(undefined, {maximumFractionDigits: 1})} (折合 ￥{totalOrderAmountCNY.toLocaleString(undefined, {maximumFractionDigits: 0})} CNY)</span>
+            <span className="text-[10px] text-slate-400">单周期营业总额： {symbol}{totalOrderAmountLocal.toLocaleString(undefined, {maximumFractionDigits: 1})} {currencyCode} (折合 ￥{totalOrderAmountCNY.toLocaleString(undefined, {maximumFractionDigits: 0})} CNY)</span>
           </div>
 
           <div>
@@ -224,28 +229,28 @@ export default function CapitalAlert({ priceLocal, symbol, exchangeRateToCNY }: 
           </h3>
           
           <div className="h-6 bg-slate-100 rounded-full flex overflow-hidden font-mono text-[10px] font-bold text-white mb-4">
-            <div className="bg-blue-500 h-full flex items-center justify-center transition-all" style={{ width: '15%' }} title="采购中/仓内装载 (15%)">
-              ￥{packagingAmountCNY.toLocaleString(undefined, {maximumFractionDigits: 0})} (15%)
+            <div className="bg-blue-500 h-full flex items-center justify-center transition-all" style={{ width: `${(stockingRatio * 100).toFixed(1)}%` }} title={`采购中/仓内装载 (${(stockingRatio * 100).toFixed(0)}%)`}>
+              ￥{packagingAmountCNY.toLocaleString(undefined, {maximumFractionDigits: 0})} ({(stockingRatio * 100).toFixed(0)}%)
             </div>
-            <div className="bg-amber-500 h-full flex items-center justify-center transition-all" style={{ width: '50%' }} title="跨境妥投在途 (50%)">
-              ￥{transitAmountCNY.toLocaleString(undefined, {maximumFractionDigits: 0})} (50%)
+            <div className="bg-amber-500 h-full flex items-center justify-center transition-all" style={{ width: `${(transitRatio * 100).toFixed(1)}%` }} title={`跨境妥投在途 (${(transitRatio * 100).toFixed(0)}%)`}>
+              ￥{transitAmountCNY.toLocaleString(undefined, {maximumFractionDigits: 0})} ({(transitRatio * 100).toFixed(0)}%)
             </div>
-            <div className="bg-violet-500 h-full flex items-center justify-center transition-all" style={{ width: '35%' }} title="妥投平台审核暂押 (35%)">
-              ￥{holdAmountCNY.toLocaleString(undefined, {maximumFractionDigits: 0})} (35%)
+            <div className="bg-violet-500 h-full flex items-center justify-center transition-all" style={{ width: `${(holdRatio * 100).toFixed(1)}%` }} title={`妥投平台审核暂押 (${(holdRatio * 100).toFixed(0)}%)`}>
+              ￥{holdAmountCNY.toLocaleString(undefined, {maximumFractionDigits: 0})} ({(holdRatio * 100).toFixed(0)}%)
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4 text-center divide-x divide-slate-100">
             <div>
-              <span className="block text-[10px] text-slate-400 font-medium">仓内处理阶段</span>
+              <span className="block text-[10px] text-slate-400 font-medium">仓内处理阶段 ({(stockingRatio * 100).toFixed(0)}%)</span>
               <span className="font-mono text-sm font-bold text-blue-600">CNY ￥{packagingAmountCNY.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
             </div>
             <div>
-              <span className="block text-[10px] text-slate-400 font-medium">国际货船在途</span>
+              <span className="block text-[10px] text-slate-400 font-medium">国际货船在途 ({(transitRatio * 100).toFixed(0)}%)</span>
               <span className="font-mono text-sm font-bold text-amber-600">CNY ￥{transitAmountCNY.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
             </div>
             <div>
-              <span className="block text-[10px] text-slate-400 font-medium">妥投放款审核</span>
+              <span className="block text-[10px] text-slate-400 font-medium">妥投放款审核 ({(holdRatio * 100).toFixed(0)}%)</span>
               <span className="font-mono text-sm font-bold text-violet-600">CNY ￥{holdAmountCNY.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
             </div>
           </div>

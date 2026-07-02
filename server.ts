@@ -34,6 +34,44 @@ const FALLBACK_RATES: Record<string, number> = {
   SGD: 1.35
 };
 
+// Safe historical limits for exchange rates validation to avoid anomalies (1 USD = X local)
+const RATE_BOUNDS: Record<string, { min: number; max: number; label: string }> = {
+  USD: { min: 0.99, max: 1.01, label: "美元 (USD)" },
+  CNY: { min: 6.0, max: 8.5, label: "人民币 (CNY)" },
+  GBP: { min: 0.6, max: 1.0, label: "英镑 (GBP)" },
+  JPY: { min: 100.0, max: 200.0, label: "日元 (JPY)" },
+  MXN: { min: 12.0, max: 25.0, label: "墨西哥比索 (MXN)" },
+  VND: { min: 20000.0, max: 30000.0, label: "越南盾 (VND)" },
+  THB: { min: 28.0, max: 45.0, label: "泰铢 (THB)" },
+  MYR: { min: 3.5, max: 5.5, label: "马来西亚林吉特 (MYR)" },
+  PHP: { min: 45.0, max: 70.0, label: "菲律宾比索 (PHP)" },
+  SGD: { min: 1.1, max: 1.6, label: "新加坡元 (SGD)" }
+};
+
+let lastVerificationStatus = {
+  verified: true,
+  lastCheckedAt: new Date().toISOString(),
+  status: "汇率数据获取成功",
+  errors: [] as string[]
+};
+
+// Verify content and audit rate validity
+function verifyExchangeRates(rates: Record<string, number>): { isValid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  for (const [currency, bounds] of Object.entries(RATE_BOUNDS)) {
+    const rate = rates[currency];
+    if (rate === undefined || rate === null || typeof rate !== "number" || isNaN(rate)) {
+      errors.push(`${bounds.label} 汇率缺失或格式不正确`);
+    } else if (rate < bounds.min || rate > bounds.max) {
+      errors.push(`${bounds.label} 汇率 ${rate} 超出安全波动区间 (${bounds.min} - ${bounds.max})`);
+    }
+  }
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+}
+
 // API endpoint to fetch real-time exchange rates (USD based base rates)
 app.get("/api/rates", async (req, res) => {
   const cacheDurationMs = 15 * 60 * 1000; // 15 minutes cache
@@ -45,7 +83,8 @@ app.get("/api/rates", async (req, res) => {
       rates: cachedRates.rates,
       fetchedAt: cachedRates.fetchedAt,
       source: cachedRates.source,
-      cached: true
+      cached: true,
+      verification: lastVerificationStatus
     });
   }
 
@@ -75,19 +114,39 @@ app.get("/api/rates", async (req, res) => {
           }
         }
 
-        cachedRates = {
-          rates: filteredRates,
-          fetchedAt: new Date().toISOString(),
-          source: url
-        };
+        // Validate content and verify daily rates
+        const audit = verifyExchangeRates(filteredRates);
+        if (audit.isValid) {
+          cachedRates = {
+            rates: filteredRates,
+            fetchedAt: new Date().toISOString(),
+            source: url
+          };
 
-        return res.json({
-          success: true,
-          rates: cachedRates.rates,
-          fetchedAt: cachedRates.fetchedAt,
-          source: cachedRates.source,
-          cached: false
-        });
+          lastVerificationStatus = {
+            verified: true,
+            lastCheckedAt: new Date().toISOString(),
+            status: "汇率数据获取成功",
+            errors: []
+          };
+
+          return res.json({
+            success: true,
+            rates: cachedRates.rates,
+            fetchedAt: cachedRates.fetchedAt,
+            source: cachedRates.source,
+            cached: false,
+            verification: lastVerificationStatus
+          });
+        } else {
+          console.warn(`Exchange rate validation failed for ${url}:`, audit.errors);
+          lastVerificationStatus = {
+            verified: false,
+            lastCheckedAt: new Date().toISOString(),
+            status: "汇率API数据内容异常，已启用安全本位币锚定及备用库",
+            errors: audit.errors
+          };
+        }
       }
     } catch (err) {
       console.error(`Error loading rate from ${url}:`, err);
@@ -105,7 +164,8 @@ app.get("/api/rates", async (req, res) => {
     fetchedAt: finalFetchedAt,
     source: finalSource,
     cached: true,
-    isFallback: !cachedRates
+    isFallback: !cachedRates,
+    verification: lastVerificationStatus
   });
 });
 

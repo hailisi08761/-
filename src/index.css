@@ -1,9 +1,33 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Arial", "Helvetica Neue", Helvetica, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Montserrat", sans-serif;
+}
+
+/* Apply Arial as body font by default */
+html, body, button, input, select, textarea {
+  font-family: "Arial", "Helvetica Neue", Helvetica, sans-serif;
+}
+
+/* Apply Montserrat to all headings, branding, and explicit title elements */
+h1, h2, h3, h4, h5, h6, 
+.font-display, 
+.font-extrabold, 
+.font-black, 
+[class*="text-xl"], 
+[class*="text-2xl"], 
+[class*="text-3xl"], 
+[class*="text-4xl"], 
+[class*="text-5xl"] {
+  font-family: "Montserrat", "Arial", sans-serif !important;
+}
+
+/* Keep numbers and data monospace for readability */
+.font-mono, code, pre {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace !important;
 }
 
 /* Custom scrollbars for a clean modern feel */

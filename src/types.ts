@@ -155,6 +155,7 @@ export interface MultiSiteResult {
   // ROAS & Breaks
   breakEvenROAS: number;
   actualROAS: number;
+  effectiveROAS?: number;
   isROASHealthy: boolean;
   eCPA: number;
   suggestedPriceLocal: number;

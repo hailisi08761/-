@@ -553,8 +553,8 @@ export function calculateMultiSiteSimulation(
       const creatorCommission = (platformId === 'tiktok' || platformId === 'shopify') ? (trialPrice * affiliateRate) : 0.0;
 
       // Product return and damage loss: custom calculation matching guidelines
-      // "退货损耗 = 总成本 * 退货率"
-      const returnLoss = totalCostLocal * returnLossRate;
+      // Incorporates local return shipping fee and damage rate for precision
+      const returnLoss = returnLossRate * ((input.returnShippingFeeLocal || 0) + (((input.badReturnInoperableRate || 0) / 100) * cogsLocal));
 
       // Platform specific commissions & transaction charges
       let commissionFee = 0;
@@ -693,6 +693,7 @@ export function calculateMultiSiteSimulation(
 
     // Financial indicators (ROAS, break-even ROAS, CPA)
     const actualROAS = finalMetrics.actualAdSpend > 0 ? price / finalMetrics.actualAdSpend : 0;
+    const effectiveROAS = finalMetrics.actualAdSpend > 0 ? (price * (1 - returnLossRate)) / finalMetrics.actualAdSpend : 0;
     const isROASHealthy = actualROAS >= 2.5;
 
     // Break even analysis ratio calculation
@@ -737,6 +738,7 @@ export function calculateMultiSiteSimulation(
       isNetMarginProfitable: finalMetrics.netProfit > 0,
       breakEvenROAS,
       actualROAS,
+      effectiveROAS,
       isROASHealthy,
       eCPA,
       suggestedPriceLocal
