@@ -488,7 +488,7 @@ export default function SiteSimulator({
       const r = results.find(x => x.siteId === order.siteId) || results[0];
       const rateToCNY = r ? r.exchangeRateToCNY : 1.0;
       
-      const revCNY = (order.isTikTokSettlement ? (order.subtotalAfterDiscount || 0) : order.salesRevenueLocal) * rateToCNY * qty;
+      const revCNY = (order.isTikTokSettlement ? (order.subtotalAfterDiscount || 0) : order.salesRevenueLocal) * rateToCNY;
       const cogsCNY = costs.cogs * qty;
       const shippingCNY = (costs.domesticShipping + costs.internationalShipping) * qty;
       
@@ -1036,10 +1036,13 @@ export default function SiteSimulator({
         }
 
         totalTaxesCNY += taxesCNY;
-        totalWithdrawalFeesCNY += (r ? (r.withdrawalFee + r.exchangeLossBuffer) : 0.01) * itemRevenueCNY; // withdraw fee
+        const withdrawalCNY = r 
+          ? (r.withdrawalFee + r.exchangeLossBuffer) * rateToCNY * qty 
+          : 0.01 * itemRevenueCNY;
+        totalWithdrawalFeesCNY += withdrawalCNY;
       } else {
         // Local revenue to CNY
-        const revCNY = order.salesRevenueLocal * rateToCNY * qty;
+        const revCNY = order.salesRevenueLocal * rateToCNY;
         totalRevenueCNY += revCNY;
 
         // Purchase & shipping costs
@@ -1064,7 +1067,9 @@ export default function SiteSimulator({
         totalTaxesCNY += taxCNY;
 
         // Withdrawal fee
-        const withdrawalCNY = (r ? (r.withdrawalFee + r.exchangeLossBuffer) : 0.015) * revCNY;
+        const withdrawalCNY = r 
+          ? (r.withdrawalFee + r.exchangeLossBuffer) * rateToCNY * qty 
+          : 0.015 * revCNY;
         totalWithdrawalFeesCNY += withdrawalCNY;
       }
     });
@@ -3413,7 +3418,7 @@ export default function SiteSimulator({
                     const shipRMB = (costs.domesticShipping + costs.internationalShipping) * order.quantity;
                     const totalCostCNY = cogsRMB + shipRMB;
                     
-                    const revenueCNY = order.salesRevenueLocal * (r ? r.exchangeRateToCNY : 1.0) * order.quantity;
+                    const revenueCNY = order.salesRevenueLocal * (r ? r.exchangeRateToCNY : 1.0);
                     
                     const commissionCNY = revenueCNY * 0.05;
                     const txFeeCNY = revenueCNY * 0.03;

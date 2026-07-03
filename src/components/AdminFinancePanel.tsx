@@ -239,9 +239,11 @@ export default function AdminFinancePanel({
           }
 
           monthTaxesCNY += (order.taxesLocal || 0) * rateToCNY * scale;
-          monthWithdrawalCNY += (r ? (r.withdrawalFee + r.exchangeLossBuffer) : 0.01) * itemRev;
+          monthWithdrawalCNY += r 
+            ? (r.withdrawalFee + r.exchangeLossBuffer) * rateToCNY * qty * scale 
+            : 0.01 * itemRev;
         } else {
-          const revCNY = order.salesRevenueLocal * rateToCNY * qty * scale;
+          const revCNY = order.salesRevenueLocal * rateToCNY * scale;
           monthRevenueCNY += revCNY;
           monthCogsCNY += costs.cogs * qty * scale;
           monthShippingCNY += (costs.domesticShipping + costs.internationalShipping) * qty * scale;
@@ -255,7 +257,9 @@ export default function AdminFinancePanel({
 
           monthRefundCNY += (r ? r.returnLoss : 0) * rateToCNY * qty * scale;
           monthTaxesCNY += (r ? r.taxes : 0) * rateToCNY * qty * scale;
-          monthWithdrawalCNY += (r ? (r.withdrawalFee + r.exchangeLossBuffer) : 0.015) * revCNY;
+          monthWithdrawalCNY += r 
+            ? (r.withdrawalFee + r.exchangeLossBuffer) * rateToCNY * qty * scale 
+            : 0.015 * revCNY;
         }
       });
 

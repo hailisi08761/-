@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { SimulationInput, ExchangeRateConfig, MonthlyOrder } from './types';
 import { calculateMultiSiteSimulation } from './utils/calculator';
+import { supabase } from './utils/supabase';
 import { PAYOUT_TOOLS_CONFIG, SITE_FEE_CONFIGS } from './data/feeStructures';
 import SiteSimulator from './components/SiteSimulator';
 import PaymentOptimizer from './components/PaymentOptimizer';
@@ -232,7 +233,43 @@ export default function App() {
     }
   }, [currentUser]);
 
-  const handleAuthSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    const syncSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const u = session.user;
+        const meta = u.user_metadata || {};
+        setCurrentUser({
+          email: u.email || '',
+          username: meta.username || u.email?.split('@')[0] || '默认用户',
+          mainCategory: meta.mainCategory || '默认类目',
+          preferredPayout: meta.preferredPayout || '连连支付'
+        });
+      }
+    };
+    syncSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        const u = session.user;
+        const meta = u.user_metadata || {};
+        setCurrentUser({
+          email: u.email || '',
+          username: meta.username || u.email?.split('@')[0] || '默认用户',
+          mainCategory: meta.mainCategory || '默认类目',
+          preferredPayout: meta.preferredPayout || '连连支付'
+        });
+      } else {
+        setCurrentUser(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
 
@@ -251,82 +288,176 @@ export default function App() {
       explosionY = rect.top + rect.height / 2;
     }
 
+    setIsLoggingIn(true);
+
     if (authMode === 'register') {
       if (!authUsername) {
         setAuthError('请填写商户昵称/店名');
-        return;
-      }
-      if (registeredUsers.some(u => u.email.toLowerCase() === authEmail.toLowerCase())) {
-        setAuthError('该邮箱已被注册');
-        return;
-      }
-
-      setIsLoggingIn(true);
-      // Dual-wave epic fortune explosions!
-      triggerFullFortuneExplosion(explosionX, explosionY);
-      setTimeout(() => triggerFullFortuneExplosion(explosionX, explosionY - 60), 200);
-
-      const newUser: RegisteredUser = {
-        email: authEmail,
-        username: authUsername,
-        mainCategory: authCategory,
-        preferredPayout: authPayout,
-        date: formatToBeijingTime(new Date())
-      };
-
-      setTimeout(() => {
-        setRegisteredUsers(prev => [newUser, ...prev]);
-        setCurrentUser({
-          email: newUser.email,
-          username: newUser.username,
-          mainCategory: newUser.mainCategory,
-          preferredPayout: newUser.preferredPayout
-        });
-        setIsCelebrationActive(true);
-        setIsAuthModalOpen(false);
         setIsLoggingIn(false);
-        resetAuthForm();
-      }, 1400);
+        return;
+      }
 
-    } else {
-      // Login simulation
-      const matched = registeredUsers.find(u => u.email.toLowerCase() === authEmail.toLowerCase());
-      setIsLoggingIn(true);
-      // Dual-wave epic fortune explosions!
-      triggerFullFortuneExplosion(explosionX, explosionY);
-      setTimeout(() => triggerFullFortuneExplosion(explosionX, explosionY - 60), 200);
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email: authEmail,
+          password: authPassword,
+          options: {
+            data: {
+              username: authUsername,
+              mainCategory: authCategory,
+              preferredPayout: authPayout,
+            }
+          }
+        });
 
-      setTimeout(() => {
-        if (matched) {
-          setCurrentUser({
-            email: matched.email,
-            username: matched.username,
-            mainCategory: matched.mainCategory,
-            preferredPayout: matched.preferredPayout
+        if (error) {
+          setAuthError(error.message);
+          setIsLoggingIn(false);
+          return;
+        }
+
+        // Dual-wave epic fortune explosions!
+        triggerFullFortuneExplosion(explosionX, explosionY);
+        setTimeout(() => triggerFullFortuneExplosion(explosionX, explosionY - 60), 200);
+
+        const newUser: RegisteredUser = {
+          email: authEmail,
+          username: authUsername,
+          mainCategory: authCategory,
+          preferredPayout: authPayout,
+          date: formatToBeijingTime(new Date())
+        };
+
+        setTimeout(() => {
+          setRegisteredUsers(prev => {
+            if (prev.some(u => u.email.toLowerCase() === authEmail.toLowerCase())) {
+              return prev;
+            }
+            return [newUser, ...prev];
           });
-        } else {
-          // Auto register if not found to ensure maximum friction-free UX
-          const generatedUsername = authEmail.split('@')[0];
-          const newUser: RegisteredUser = {
-            email: authEmail,
-            username: generatedUsername,
-            mainCategory: '默认类目',
-            preferredPayout: '连连支付',
-            date: formatToBeijingTime(new Date())
-          };
-          setRegisteredUsers(prev => [newUser, ...prev]);
           setCurrentUser({
             email: newUser.email,
             username: newUser.username,
             mainCategory: newUser.mainCategory,
             preferredPayout: newUser.preferredPayout
           });
-        }
-        setIsCelebrationActive(true);
-        setIsAuthModalOpen(false);
+          setIsCelebrationActive(true);
+          setIsAuthModalOpen(false);
+          setIsLoggingIn(false);
+          resetAuthForm();
+        }, 1400);
+
+      } catch (err: any) {
+        setAuthError(err.message || '注册失败，请稍后重试');
         setIsLoggingIn(false);
-        resetAuthForm();
-      }, 1400);
+      }
+
+    } else {
+      // Login simulation & auto-register with Supabase fallback
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: authEmail,
+          password: authPassword,
+        });
+
+        if (error) {
+          // If login fails, try auto-register to ensure maximum friction-free UX
+          if (error.message.includes('Invalid login credentials') || error.message.includes('not found') || error.message.includes('Email not confirmed')) {
+            const generatedUsername = authEmail.split('@')[0];
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+              email: authEmail,
+              password: authPassword,
+              options: {
+                data: {
+                  username: generatedUsername,
+                  mainCategory: '默认类目',
+                  preferredPayout: '连连支付',
+                }
+              }
+            });
+
+            if (signUpError) {
+              setAuthError(`登录或自动注册失败: ${error.message}`);
+              setIsLoggingIn(false);
+              return;
+            }
+
+            // Dual-wave epic fortune explosions!
+            triggerFullFortuneExplosion(explosionX, explosionY);
+            setTimeout(() => triggerFullFortuneExplosion(explosionX, explosionY - 60), 200);
+
+            const newUser: RegisteredUser = {
+              email: authEmail,
+              username: generatedUsername,
+              mainCategory: '默认类目',
+              preferredPayout: '连连支付',
+              date: formatToBeijingTime(new Date())
+            };
+
+            setTimeout(() => {
+              setRegisteredUsers(prev => {
+                if (prev.some(u => u.email.toLowerCase() === authEmail.toLowerCase())) {
+                  return prev;
+                }
+                return [newUser, ...prev];
+              });
+              setCurrentUser({
+                email: newUser.email,
+                username: newUser.username,
+                mainCategory: newUser.mainCategory,
+                preferredPayout: newUser.preferredPayout
+              });
+              setIsCelebrationActive(true);
+              setIsAuthModalOpen(false);
+              setIsLoggingIn(false);
+              resetAuthForm();
+            }, 1400);
+            return;
+          }
+
+          setAuthError(error.message);
+          setIsLoggingIn(false);
+          return;
+        }
+
+        // Login successful
+        const userObj = data.user;
+        const metadata = userObj?.user_metadata || {};
+        const loggedInUser: RegisteredUser = {
+          email: userObj?.email || authEmail,
+          username: metadata.username || authEmail.split('@')[0],
+          mainCategory: metadata.mainCategory || '默认类目',
+          preferredPayout: metadata.preferredPayout || '连连支付',
+          date: formatToBeijingTime(new Date())
+        };
+
+        // Dual-wave epic fortune explosions!
+        triggerFullFortuneExplosion(explosionX, explosionY);
+        setTimeout(() => triggerFullFortuneExplosion(explosionX, explosionY - 60), 200);
+
+        setTimeout(() => {
+          setRegisteredUsers(prev => {
+            if (prev.some(u => u.email.toLowerCase() === loggedInUser.email.toLowerCase())) {
+              return prev;
+            }
+            return [loggedInUser, ...prev];
+          });
+          setCurrentUser({
+            email: loggedInUser.email,
+            username: loggedInUser.username,
+            mainCategory: loggedInUser.mainCategory,
+            preferredPayout: loggedInUser.preferredPayout
+          });
+          setIsCelebrationActive(true);
+          setIsAuthModalOpen(false);
+          setIsLoggingIn(false);
+          resetAuthForm();
+        }, 1400);
+
+      } catch (err: any) {
+        setAuthError(err.message || '登录失败，请稍后重试');
+        setIsLoggingIn(false);
+      }
     }
   };
 
@@ -337,7 +468,8 @@ export default function App() {
     setAuthError('');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setCurrentUser(null);
   };
 
