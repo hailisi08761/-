@@ -14,7 +14,9 @@ import {
   LayoutDashboard, 
   Info,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  SlidersHorizontal,
+  BarChart3
 } from 'lucide-react';
 import { MonthlyOrder, MultiSiteResult } from '../types';
 import { 
@@ -47,6 +49,9 @@ export default function AdminFinancePanel({
   
   // 2. Report Cycle Selection: 'annual' | 'q1' | 'q2' | 'q3' | 'q4'
   const [reportCycle, setReportCycle] = useState<'annual' | 'q1' | 'q2' | 'q3' | 'q4'>('annual');
+
+  // Mobile subtab toggle
+  const [mobileSubTab, setMobileSubTab] = useState<'config' | 'report'>('config');
 
   // Intelligent Grouping and Merging Function (智能归并函数)
   const mergedOrdersInfo = useMemo(() => {
@@ -368,10 +373,37 @@ export default function AdminFinancePanel({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
-          {/* LEFT: Controlling Merging Configuration */}
-          <div className="lg:col-span-4 space-y-5">
+        <div>
+          {/* Mobile-only Segmented Control for Admin Panel */}
+          <div className="lg:hidden flex bg-slate-200/80 p-1 rounded-xl border border-slate-300/40 shadow-inner mb-4">
+            <button
+              onClick={() => setMobileSubTab('config')}
+              className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                mobileSubTab === 'config'
+                  ? 'bg-white text-indigo-900 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-800'
+              }`}
+            >
+              <SlidersHorizontal className="h-3 w-3" />
+              <span>归并精算配置</span>
+            </button>
+            <button
+              onClick={() => setMobileSubTab('report')}
+              className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                mobileSubTab === 'report'
+                  ? 'bg-white text-indigo-900 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-800'
+              }`}
+            >
+              <BarChart3 className="h-3 w-3" />
+              <span>查看分析财务报告</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* LEFT: Controlling Merging Configuration */}
+            <div className={`lg:col-span-4 space-y-5 ${mobileSubTab === 'config' ? 'block' : 'hidden lg:block'}`}>
             
             <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-4 shadow-3xs">
               <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
@@ -501,7 +533,7 @@ export default function AdminFinancePanel({
           </div>
 
           {/* RIGHT: Financial Report Details */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className={`lg:col-span-8 space-y-6 ${mobileSubTab === 'report' ? 'block' : 'hidden lg:block'}`}>
             {financialReportData && (
               <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm space-y-6">
                 
@@ -793,6 +825,7 @@ export default function AdminFinancePanel({
             )}
           </div>
 
+        </div>
         </div>
       )}
 

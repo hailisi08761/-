@@ -780,7 +780,7 @@ export default function App() {
       <CelebrationRain active={isCelebrationActive} onClose={() => setIsCelebrationActive(false)} />
       
       {/* Header and Brand */}
-      <header className="bg-slate-900 text-white py-3.5 px-4 sm:px-8 border-b border-slate-800 shadow-md">
+      <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-md text-white py-3 px-4 sm:px-8 border-b border-slate-800 shadow-md">
         <div className="w-full flex flex-col md:flex-row items-center justify-between gap-4">
           
           {/* Left: Branding & Slogans */}
@@ -885,11 +885,11 @@ export default function App() {
       <main className="flex-1 w-full p-4 sm:p-6 lg:p-8 space-y-6">
         
         {/* Tab Selection Row */}
-        <div className="border-b border-slate-200 pb-px flex sm:justify-between items-center flex-wrap gap-2">
-          <div className="flex space-x-1.5 bg-slate-200/50 p-1.5 rounded-xl border border-slate-200/40">
+        <div className="border-b border-slate-200 pb-px flex sm:justify-between items-center flex-wrap gap-2 w-full">
+          <div className="flex space-x-1.5 bg-slate-200/50 p-1.5 rounded-xl border border-slate-200/40 overflow-x-auto whitespace-nowrap no-scrollbar flex-nowrap w-full md:w-auto">
             <button
               onClick={() => setActiveTab('site')}
-              className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex-shrink-0 flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 activeTab === 'site'
                   ? 'bg-white text-indigo-900 shadow-sm'
                   : 'text-slate-600 hover:text-indigo-600 hover:bg-white/40'
@@ -900,7 +900,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setActiveTab('payout')}
-              className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex-shrink-0 flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 activeTab === 'payout'
                   ? 'bg-white text-indigo-900 shadow-sm'
                   : 'text-slate-600 hover:text-indigo-600 hover:bg-white/40'
@@ -911,7 +911,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setActiveTab('capital')}
-              className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex-shrink-0 flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 activeTab === 'capital'
                   ? 'bg-white text-indigo-900 shadow-sm'
                   : 'text-slate-600 hover:text-indigo-600 hover:bg-white/40'
@@ -922,7 +922,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setActiveTab('risk')}
-              className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex-shrink-0 flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 activeTab === 'risk'
                   ? 'bg-white text-indigo-900 shadow-sm'
                   : 'text-slate-600 hover:text-indigo-600 hover:bg-white/40'
@@ -933,7 +933,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setActiveTab('admin')}
-              className={`flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`flex-shrink-0 flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 activeTab === 'admin'
                   ? 'bg-indigo-50/80 text-indigo-900 border border-indigo-200/60 shadow-xs font-black'
                   : 'text-slate-600 hover:text-indigo-700 hover:bg-white/40'

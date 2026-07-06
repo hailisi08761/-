@@ -28,7 +28,9 @@ import {
   Activity,
   Upload,
   Download,
-  ClipboardCheck
+  ClipboardCheck,
+  SlidersHorizontal,
+  BarChart3
 } from 'lucide-react';
 
 export function VectorFlag({ id, className = "h-4 w-6 object-cover rounded-xs" }: { id: string; className?: string }) {
@@ -234,6 +236,11 @@ export default function SiteSimulator({
   const [displayInCNY, setDisplayInCNY] = useState<boolean>(false);
   const [showCostBreakdown, setShowCostBreakdown] = useState<boolean>(false);
   const [returnRateThreshold, setReturnRateThreshold] = useState<number>(10);
+
+  // Mobile-only responsive view subtabs
+  const [mobileSubTab, setMobileSubTab] = useState<'inputs' | 'results'>('inputs');
+  const [batchMobileSubTab, setBatchMobileSubTab] = useState<'inputs' | 'results'>('inputs');
+  const [enterpriseMobileSubTab, setEnterpriseMobileSubTab] = useState<'inputs' | 'results'>('inputs');
 
   // 日/周/月单量与利润精算 States
   const [timeFrame, setTimeFrame] = useState<'day' | 'week' | 'month'>('month');
@@ -1758,11 +1765,37 @@ export default function SiteSimulator({
         </div>
       </div>
       
+      {/* Mobile-only Segmented Control for Single Product精算 to toggle between parameters and results */}
+      <div className="lg:hidden flex bg-slate-200/80 p-1.5 rounded-2xl border border-slate-300/40 shadow-inner">
+        <button
+          onClick={() => setMobileSubTab('inputs')}
+          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+            mobileSubTab === 'inputs'
+              ? 'bg-white text-indigo-900 shadow-sm'
+              : 'text-slate-600 hover:text-slate-800'
+          }`}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          <span>调整配置参数</span>
+        </button>
+        <button
+          onClick={() => setMobileSubTab('results')}
+          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+            mobileSubTab === 'results'
+              ? 'bg-white text-indigo-900 shadow-sm'
+              : 'text-slate-600 hover:text-slate-800'
+          }`}
+        >
+          <BarChart3 className="h-3.5 w-3.5" />
+          <span>查看实时看盘</span>
+        </button>
+      </div>
+      
       {/* Three Column Grid Layout - Organized with operations left-side vertical stack & results right-side */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         {/* Left Side: Parameters Operations & Insights vertical stack (col-span-7) */}
-        <div className="lg:col-span-7 flex flex-col space-y-8">
+        <div className={`lg:col-span-7 flex flex-col space-y-8 ${mobileSubTab === 'inputs' ? 'flex' : 'hidden lg:flex'}`}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* COLUMN 1: 平台与销售大区选择 */}
@@ -2435,7 +2468,7 @@ export default function SiteSimulator({
         {/* ======================================================== */}
         {/* COLUMN 3: 实时结果看板 (col-span-5) */}
         {/* ======================================================== */}
-        <div className={`lg:col-span-5 h-fit rounded-2xl p-7 shadow-xl flex flex-col justify-start space-y-5 border transition-all duration-350 ${resultsTheme.containerBg}`}>
+        <div className={`lg:col-span-5 h-fit rounded-2xl p-7 shadow-xl flex flex-col justify-start space-y-5 border transition-all duration-350 ${resultsTheme.containerBg} ${mobileSubTab === 'results' ? 'flex' : 'hidden lg:flex'}`}>
           
           <div className="space-y-4">
             {/* Big Headline Price block */}
@@ -3170,9 +3203,35 @@ export default function SiteSimulator({
               </div>
             </div>
 
+            {/* Mobile-only Segmented Control for Batch evaluation to toggle between upload and report */}
+            <div className="lg:hidden flex bg-slate-200/80 p-1 rounded-xl border border-slate-300/40 shadow-inner mb-4">
+              <button
+                onClick={() => setBatchMobileSubTab('inputs')}
+                className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  batchMobileSubTab === 'inputs'
+                    ? 'bg-white text-indigo-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-800'
+                }`}
+              >
+                <SlidersHorizontal className="h-3 w-3" />
+                <span>导入与数据编辑</span>
+              </button>
+              <button
+                onClick={() => setBatchMobileSubTab('results')}
+                className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                  batchMobileSubTab === 'results'
+                    ? 'bg-white text-indigo-900 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-800'
+                }`}
+              >
+                <BarChart3 className="h-3 w-3" />
+                <span>查看批量核算表</span>
+              </button>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Batch Entry & Drag Upload Box */}
-              <div className="lg:col-span-5 space-y-4">
+              <div className={`lg:col-span-5 space-y-4 ${batchMobileSubTab === 'inputs' ? 'block' : 'hidden lg:block'}`}>
                 
                 {/* Drag-and-drop zone */}
                 <div 
@@ -3247,7 +3306,7 @@ export default function SiteSimulator({
               </div>
 
               {/* Matrix Table */}
-              <div className="lg:col-span-7 space-y-3">
+              <div className={`lg:col-span-7 space-y-3 ${batchMobileSubTab === 'results' ? 'block' : 'hidden lg:block'}`}>
                 <span className="block text-xs font-black text-slate-500 uppercase tracking-wider">批量定价推荐方案与多国税务结构对比</span>
                 
                 <div className="border border-slate-150 rounded-2xl overflow-hidden shadow-xs">
@@ -3942,9 +4001,35 @@ export default function SiteSimulator({
           </span>
         </div>
 
+        {/* Mobile-only Segmented Control for Enterprise Amortization */}
+        <div className="lg:hidden flex bg-slate-200/80 p-1 rounded-xl border border-slate-300/40 shadow-inner mb-4">
+          <button
+            onClick={() => setEnterpriseMobileSubTab('inputs')}
+            className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+              enterpriseMobileSubTab === 'inputs'
+                ? 'bg-white text-indigo-900 shadow-sm'
+                : 'text-slate-600 hover:text-slate-800'
+            }`}
+          >
+            <SlidersHorizontal className="h-3 w-3" />
+            <span>配置企业开支</span>
+          </button>
+          <button
+            onClick={() => setEnterpriseMobileSubTab('results')}
+            className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+              enterpriseMobileSubTab === 'results'
+                ? 'bg-white text-indigo-900 shadow-sm'
+                : 'text-slate-600 hover:text-slate-800'
+            }`}
+          >
+            <BarChart3 className="h-3 w-3" />
+            <span>查看分摊报告</span>
+          </button>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Inputs Panel (Left) */}
-          <div className="lg:col-span-5 bg-white rounded-2xl border border-slate-150 p-5 space-y-4 shadow-2xs">
+          <div className={`lg:col-span-5 bg-white rounded-2xl border border-slate-150 p-5 space-y-4 shadow-2xs ${enterpriseMobileSubTab === 'inputs' ? 'block' : 'hidden lg:block'}`}>
             <h3 className="text-xs font-black text-slate-450 uppercase tracking-widest border-b border-slate-100 pb-2">企业月度固收与单量配置</h3>
             
             <div className="space-y-3">
@@ -4090,7 +4175,7 @@ export default function SiteSimulator({
           </div>
 
           {/* Report Panel (Right) */}
-          <div className="lg:col-span-7 flex flex-col justify-between">
+          <div className={`lg:col-span-7 flex flex-col justify-between ${enterpriseMobileSubTab === 'results' ? 'flex' : 'hidden lg:flex'}`}>
             {(() => {
               const ordersNum = parseFloat(historicalMonthlyOrders) || 0;
               const staffVal = parseFloat(staffCostRMB) || 0;
